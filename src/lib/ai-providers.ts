@@ -34,11 +34,15 @@ export interface AICompletionResult {
 
 const PROVIDER_CONFIG = {
   openai: {
+    // Modelo pode ser configurado via OPENAI_MODEL no .env
+    // Exemplos: gpt-4-turbo-preview, gpt-4, gpt-3.5-turbo
     defaultModel: process.env.OPENAI_MODEL || "gpt-4-turbo-preview",
     maxTokens: 4000,
   },
   gemini: {
-    defaultModel: process.env.GEMINI_MODEL || "gemini-1.5-pro",
+    // Modelo pode ser configurado via GEMINI_MODEL no .env
+    // Modelos disponíveis: gemini-pro, gemini-1.5-pro, gemini-1.5-flash, gemini-2.0-flash-exp, gemini-3-pro-preview
+    defaultModel: process.env.GEMINI_MODEL || "gemini-1.5-flash",
     maxTokens: 8000,
   },
 };
@@ -129,7 +133,28 @@ async function callGemini(options: AICompletionOptions): Promise<AICompletionRes
     model = PROVIDER_CONFIG.gemini.defaultModel;
   }
 
+  // Validar modelo Gemini (remover espaços e garantir formato correto)
+  model = model.trim();
+  
+  // Lista de modelos Gemini válidos
+  const validModels = [
+    "gemini-pro",
+    "gemini-1.5-pro",
+    "gemini-1.5-flash",
+    "gemini-2.0-flash-exp",
+    "gemini-1.5-pro-latest",
+    "gemini-1.5-flash-latest"
+  ];
+  
+  // Se o modelo não for válido, usar o default
+  if (!validModels.includes(model)) {
+    console.warn(`[Gemini] Modelo "${model}" não reconhecido, usando default: ${PROVIDER_CONFIG.gemini.defaultModel}`);
+    model = PROVIDER_CONFIG.gemini.defaultModel;
+  }
+
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  
+  console.log(`[Gemini] Chamando API com modelo: ${model}`);
 
   // Monta o prompt combinando system + user
   let fullPrompt = options.userPrompt;
@@ -166,9 +191,22 @@ async function callGemini(options: AICompletionOptions): Promise<AICompletionRes
   });
 
   if (!response.ok) {
-    const error = await response.text();
-    console.error("Gemini API Error:", error);
-    throw new Error(`Erro na API Gemini: ${response.status}`);
+    let errorMessage = `Erro na API Gemini: ${response.status}`;
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.error?.message || errorMessage;
+      console.error("[Gemini] Erro detalhado:", JSON.stringify(errorData, null, 2));
+    } catch {
+      const errorText = await response.text();
+      console.error("[Gemini] Erro (texto):", errorText);
+      errorMessage = errorText || errorMessage;
+    }
+    
+    console.error(`[Gemini] URL: ${url.replace(apiKey, "***")}`);
+    console.error(`[Gemini] Model: ${model}`);
+    console.error(`[Gemini] Status: ${response.status}`);
+    
+    throw new Error(errorMessage);
   }
 
   const data: GeminiResponse = await response.json();
@@ -229,6 +267,7 @@ export async function createAICompletion(
   }
 
   let lastError: Error | null = null;
+  const errors: string[] = [];
 
   for (const p of providers) {
     try {
@@ -241,13 +280,20 @@ export async function createAICompletion(
         return await callGemini(options);
       }
     } catch (error) {
-      console.error(`[AI] Erro com provider ${p}:`, error);
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error(`[AI] Erro com provider ${p}:`, errorMsg);
+      errors.push(`${p}: ${errorMsg}`);
       lastError = error as Error;
       // Continua para o próximo provider
     }
   }
 
-  throw lastError || new Error("Todos os providers de IA falharam");
+  // Se todos falharam, lançar erro com detalhes
+  const errorMessage = errors.length > 0 
+    ? `Todos os providers falharam:\n${errors.join("\n")}`
+    : "Todos os providers de IA falharam";
+  
+  throw lastError || new Error(errorMessage);
 }
 
 // ==========================================

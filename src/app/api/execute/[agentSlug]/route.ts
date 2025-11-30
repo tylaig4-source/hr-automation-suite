@@ -14,9 +14,13 @@ const executeSchema = z.object({
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { agentSlug: string } }
+  { params }: { params: Promise<{ agentSlug: string }> | { agentSlug: string } }
 ) {
   try {
+    // Resolver params (Next.js 14+ pode retornar Promise)
+    const resolvedParams = await Promise.resolve(params);
+    const agentSlug = resolvedParams.agentSlug;
+
     // Verificar autenticação
     const session = await getServerSession(authOptions);
     if (!session?.user) {
@@ -27,7 +31,7 @@ export async function POST(
     }
 
     // Buscar agente
-    const agent = getAgentBySlug(params.agentSlug);
+    const agent = getAgentBySlug(agentSlug);
     if (!agent) {
       return NextResponse.json(
         { error: "Agente não encontrado" },
@@ -142,43 +146,82 @@ export async function POST(
     });
 
     if (!dbAgent) {
-      // Buscar categoria
-      let category = await prisma.category.findFirst({
-        where: {
-          OR: [
-            { id: agent.categoryId },
-            { slug: agent.categoryId }
-          ]
-        },
-      });
-
-      if (!category) {
-        // Criar categoria se não existir
-        category = await prisma.category.create({
-          data: {
-            name: agent.categoryId,
-            slug: agent.categoryId,
+      try {
+        // Buscar categoria
+        let category = await prisma.category.findFirst({
+          where: {
+            OR: [
+              { id: agent.categoryId },
+              { slug: agent.categoryId }
+            ]
           },
         });
-      }
 
-      dbAgent = await prisma.agent.create({
-        data: {
-          id: agent.id,
-          categoryId: category.id,
-          name: agent.name,
-          slug: agent.slug,
-          description: agent.description,
-          shortDescription: agent.shortDescription,
-          promptTemplate: agent.promptTemplate,
-          systemPrompt: agent.systemPrompt,
-          inputSchema: agent.inputSchema as any,
-          estimatedTimeSaved: agent.estimatedTimeSaved,
-          temperature: agent.temperature,
-          maxTokens: agent.maxTokens,
-          model: agent.model,
-        },
-      });
+        if (!category) {
+          // Criar categoria se não existir
+          category = await prisma.category.create({
+            data: {
+              name: agent.categoryId,
+              slug: agent.categoryId,
+            },
+          });
+        }
+
+        // Tentar criar com o ID do agente, mas se falhar, deixar o Prisma gerar
+        try {
+          dbAgent = await prisma.agent.create({
+            data: {
+              id: agent.id,
+              categoryId: category.id,
+              name: agent.name,
+              slug: agent.slug,
+              description: agent.description,
+              shortDescription: agent.shortDescription,
+              promptTemplate: agent.promptTemplate,
+              systemPrompt: agent.systemPrompt,
+              inputSchema: agent.inputSchema as any,
+              estimatedTimeSaved: agent.estimatedTimeSaved,
+              temperature: agent.temperature,
+              maxTokens: agent.maxTokens,
+              model: agent.model,
+            },
+          });
+        } catch (createError: any) {
+          // Se o ID já existir, tentar criar sem especificar o ID
+          if (createError?.code === 'P2002' || createError?.message?.includes('Unique constraint')) {
+            console.warn(`[Execute] ID ${agent.id} já existe, criando sem ID específico`);
+            dbAgent = await prisma.agent.create({
+              data: {
+                categoryId: category.id,
+                name: agent.name,
+                slug: agent.slug,
+                description: agent.description,
+                shortDescription: agent.shortDescription,
+                promptTemplate: agent.promptTemplate,
+                systemPrompt: agent.systemPrompt,
+                inputSchema: agent.inputSchema as any,
+                estimatedTimeSaved: agent.estimatedTimeSaved,
+                temperature: agent.temperature,
+                maxTokens: agent.maxTokens,
+                model: agent.model,
+              },
+            });
+          } else {
+            throw createError;
+          }
+        }
+      } catch (dbError) {
+        console.error("[Execute] Erro ao criar agente no banco:", dbError);
+        // Continuar mesmo se não conseguir criar no banco (pode ser problema temporário)
+        // Mas precisamos do dbAgent para salvar a execução, então vamos buscar novamente
+        dbAgent = await prisma.agent.findUnique({
+          where: { slug: agent.slug },
+        });
+        
+        if (!dbAgent) {
+          throw new Error("Não foi possível criar ou encontrar o agente no banco de dados");
+        }
+      }
     }
 
     // Salvar execução no banco
@@ -229,17 +272,30 @@ export async function POST(
       provider: result.provider,
     });
   } catch (error) {
-    console.error("Erro na execução:", error);
+    console.error("[Execute] Erro na execução:", error);
+    
+    // Log detalhado do erro
+    if (error instanceof Error) {
+      console.error("[Execute] Mensagem:", error.message);
+      console.error("[Execute] Stack:", error.stack);
+    }
 
     if (error instanceof z.ZodError) {
+      console.error("[Execute] Erro de validação:", error.errors);
       return NextResponse.json(
-        { error: "Dados inválidos" },
+        { error: "Dados inválidos", details: error.errors },
         { status: 400 }
       );
     }
 
+    // Retornar mensagem de erro mais específica se disponível
+    const errorMessage = error instanceof Error ? error.message : "Erro interno do servidor";
+    
     return NextResponse.json(
-      { error: "Erro interno do servidor" },
+      { 
+        error: "Erro interno do servidor",
+        message: process.env.NODE_ENV === "development" ? errorMessage : undefined
+      },
       { status: 500 }
     );
   }
