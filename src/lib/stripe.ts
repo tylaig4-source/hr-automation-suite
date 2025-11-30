@@ -6,13 +6,40 @@
 
 import Stripe from "stripe";
 
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error("STRIPE_SECRET_KEY is not configured");
+// Lazy initialization - só cria a instância quando necessário
+let stripeInstance: Stripe | null = null;
+
+function getStripe(): Stripe {
+  if (!stripeInstance) {
+    const secretKey = process.env.STRIPE_SECRET_KEY;
+    
+    // Durante o build, permite usar uma chave dummy
+    if (!secretKey) {
+      if (process.env.NODE_ENV === "production" && !process.env.SKIP_STRIPE_CHECK) {
+        // Em produção, só permite se explicitamente configurado para pular
+        throw new Error("STRIPE_SECRET_KEY is not configured");
+      }
+      // Durante build ou desenvolvimento, usa chave dummy
+      stripeInstance = new Stripe("sk_test_dummy", {
+        apiVersion: "2025-11-17.clover",
+        typescript: true,
+      });
+    } else {
+      stripeInstance = new Stripe(secretKey, {
+        apiVersion: "2025-11-17.clover",
+        typescript: true,
+      });
+    }
+  }
+  
+  return stripeInstance;
 }
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "sk_test_dummy", {
-  apiVersion: "2025-11-17.clover",
-  typescript: true,
+// Exporta uma função getter ao invés de instância direta
+export const stripe = new Proxy({} as Stripe, {
+  get(_target, prop) {
+    return getStripe()[prop as keyof Stripe];
+  },
 });
 
 // ============================================
@@ -336,6 +363,11 @@ export function verifyWebhookSignature(
 
 export async function testConnection(): Promise<boolean> {
   try {
+    // Verifica se a chave está configurada (não é dummy)
+    if (!process.env.STRIPE_SECRET_KEY || process.env.STRIPE_SECRET_KEY === "sk_test_dummy") {
+      return false;
+    }
+    
     await stripe.customers.list({ limit: 1 });
     return true;
   } catch {
