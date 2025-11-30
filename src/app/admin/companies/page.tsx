@@ -192,7 +192,7 @@ export default async function AdminCompaniesPage({
             </thead>
             <tbody>
               {companies.map((company) => {
-                const colors = planColors[company.plan as keyof typeof planColors];
+                const colors = planColors[company.plan as keyof typeof planColors] || planColors.PROFESSIONAL;
                 return (
                   <tr
                     key={company.id}
