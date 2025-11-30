@@ -61,17 +61,6 @@ export function Header({ user }: HeaderProps) {
   const userRole = sessionRole || propRole;
   const isAdmin = userRole === "ADMIN" || sessionRole === "ADMIN" || propRole === "ADMIN";
   
-  // Debug temporário - remover após confirmar
-  useEffect(() => {
-    console.log("[Header Debug]", {
-      sessionRole,
-      propRole,
-      finalRole: userRole,
-      isAdmin,
-      email: user.email,
-      sessionExists: !!session
-    });
-  }, [sessionRole, propRole, userRole, isAdmin, user.email, session]);
   
   // Usar dados da sessão se disponível, senão usar props
   const displayUser = session?.user || user;
