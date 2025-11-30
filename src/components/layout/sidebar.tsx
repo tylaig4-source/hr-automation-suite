@@ -16,11 +16,15 @@ import {
   Bookmark,
   Sparkles,
   ChevronDown,
+  CreditCard,
+  Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { UsageCard } from "@/components/dashboard/usage-card";
 import { useSidebar } from "@/components/layout/sidebar-context";
+import { useSession } from "next-auth/react";
+import { Shield } from "lucide-react";
 
 const categories = [
   {
@@ -77,6 +81,8 @@ export function Sidebar() {
   const pathname = usePathname();
   const [categoriesOpen, setCategoriesOpen] = useState(true);
   const { isCollapsed, toggleSidebar } = useSidebar();
+  const { data: session } = useSession();
+  const isAdmin = session?.user?.role === "ADMIN";
 
   return (
     <aside
@@ -227,6 +233,65 @@ export function Sidebar() {
           >
             <Bookmark className="h-4 w-4 shrink-0" />
             {!isCollapsed && <span>Templates</span>}
+          </Link>
+
+          {/* Divider */}
+          <div className="border-t my-4" />
+
+          {/* Plans */}
+          <Link
+            href="/dashboard/plans"
+            className={cn(
+              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+              pathname === "/dashboard/plans"
+                ? "bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400"
+                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+              isCollapsed && "justify-center px-2"
+            )}
+            title={isCollapsed ? "Planos" : undefined}
+          >
+            <CreditCard className={cn("h-4 w-4 shrink-0", pathname === "/dashboard/plans" && "text-green-600 dark:text-green-400")} />
+            {!isCollapsed && <span>Planos</span>}
+          </Link>
+
+          {/* Admin Panel - Only for admins */}
+          {isAdmin && (
+            <>
+              <div className="border-t my-4" />
+              <Link
+                href="/admin"
+                className={cn(
+                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                  pathname.startsWith("/admin")
+                    ? "bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30"
+                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                  isCollapsed && "justify-center px-2"
+                )}
+                title={isCollapsed ? "Admin" : undefined}
+              >
+                <Shield className={cn(
+                  "h-4 w-4 shrink-0",
+                  pathname.startsWith("/admin") && "text-amber-600 dark:text-amber-400"
+                )} />
+                {!isCollapsed && <span>Painel Admin</span>}
+              </Link>
+            </>
+          )}
+
+          {/* Profile/Settings */}
+          <Link
+            href="/dashboard/profile"
+            className={cn(
+              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+              pathname === "/dashboard/profile"
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+              isCollapsed && "justify-center px-2"
+            )}
+            title={isCollapsed ? "Perfil" : undefined}
+          >
+            <Settings className="h-4 w-4 shrink-0" />
+            {!isCollapsed && <span>Configurações</span>}
           </Link>
         </nav>
 

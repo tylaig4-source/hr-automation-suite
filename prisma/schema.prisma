@@ -96,28 +96,163 @@ model Company {
   name          String
   slug          String        @unique
   logo          String?
-  plan          CompanyPlan   @default(STARTER)
+  plan          CompanyPlan   @default(TRIAL)
   settings      Json?         // Configurações customizadas
   
   users         User[]
   executions    Execution[]
   customPrompts CompanyPrompt[]
+  subscription  Subscription?
+  payments      Payment[]
+  enterpriseRequests EnterpriseRequest[]
   
   // Limites do plano
-  maxUsers      Int           @default(2)
-  maxExecutions Int           @default(100) // Por mês
-  credits       Int           @default(50)  // Créditos para uso de agentes
+  maxUsers      Int           @default(1)
+  maxExecutions Int           @default(10) // Por mês
+  credits       Int           @default(10)  // Créditos para uso de agentes
+  
+  // Trial de 3 dias
+  trialStartDate DateTime?    // Data de início do trial
+  trialEndDate   DateTime?    // Data de término do trial
+  isTrialing     Boolean      @default(true) // Se está em período de trial
+  
+  // Stripe Customer ID
+  stripeCustomerId String?     @unique
   
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
   @@index([slug])
+  @@index([stripeCustomerId])
+  @@index([isTrialing])
 }
 
 enum CompanyPlan {
-  STARTER       // R$ 197/mês - 2 usuários, 100 execuções
-  PROFESSIONAL  // R$ 497/mês - 10 usuários, 500 execuções
+  TRIAL         // Grátis - 3 dias, 1 usuário, 10 execuções
+  STARTER       // Legado - convertido para TRIAL em novas contas
+  PROFESSIONAL  // R$ 497/mês - 5 usuários, 500 execuções
   ENTERPRISE    // Custom - Ilimitado
+}
+
+// ===========================================
+// ASSINATURAS E PAGAMENTOS (Stripe)
+// ===========================================
+
+model Subscription {
+  id                    String             @id @default(cuid())
+  
+  companyId             String             @unique
+  company               Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  // IDs do Stripe
+  stripeSubscriptionId   String?            @unique // ID da assinatura no Stripe
+  stripePriceId         String?            // ID do preço no Stripe
+  stripePaymentMethodId  String?            // ID do método de pagamento salvo
+  
+  // Dados da assinatura
+  planId                String             // STARTER, PROFESSIONAL, ENTERPRISE
+  billingType           BillingType        @default(MONTHLY)
+  value                 Float              // Valor da assinatura
+  
+  // Status
+  status                SubscriptionStatus @default(PENDING)
+  
+  // Datas
+  nextDueDate           DateTime?          // Próximo vencimento
+  endDate               DateTime?          // Data de término (se cancelada)
+  
+  // Configurações
+  cycle                 String             @default("MONTHLY") // MONTHLY, YEARLY
+  description           String?
+  
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  @@index([status])
+  @@index([stripeSubscriptionId])
+}
+
+enum SubscriptionStatus {
+  PENDING       // Aguardando primeiro pagamento
+  ACTIVE        // Ativa
+  OVERDUE       // Com pagamento atrasado
+  CANCELED      // Cancelada
+  EXPIRED       // Expirada
+}
+
+enum BillingType {
+  MONTHLY
+  YEARLY
+}
+
+model Payment {
+  id                String        @id @default(cuid())
+  
+  companyId         String
+  company           Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  // IDs do Stripe
+  stripePaymentIntentId    String?        @unique  // ID do PaymentIntent no Stripe
+  stripeChargeId           String?                 // ID da cobrança no Stripe
+  
+  // Dados do pagamento
+  value             Float                  // Valor
+  netValue          Float?                 // Valor líquido
+  description       String?
+  
+  // Forma de pagamento
+  billingType       PaymentMethod          // PIX, BOLETO, CREDIT_CARD
+  
+  // Datas
+  dueDate           DateTime               // Vencimento
+  paymentDate       DateTime?              // Data do pagamento (quando pago)
+  
+  // Status
+  status            PaymentStatus @default(PENDING)
+  
+  // Links e dados adicionais
+  invoiceUrl        String?                // URL da fatura
+  bankSlipUrl       String?                // URL do boleto
+  pixQrCode         String?       @db.Text // QR Code PIX
+  pixCopiaECola     String?       @db.Text // Código PIX Copia e Cola
+  
+  // Dados do cartão (se aplicável)
+  creditCardNumber  String?                // Últimos 4 dígitos
+  creditCardBrand   String?                // VISA, MASTERCARD, etc.
+  
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@index([companyId])
+  @@index([status])
+  @@index([dueDate])
+  @@index([stripePaymentIntentId])
+  @@index([stripeChargeId])
+}
+
+enum PaymentStatus {
+  PENDING           // Aguardando pagamento
+  RECEIVED          // Recebido (crédito confirmado)
+  CONFIRMED         // Confirmado
+  OVERDUE           // Vencido
+  REFUNDED          // Estornado
+  RECEIVED_IN_CASH  // Recebido em dinheiro
+  REFUND_REQUESTED  // Estorno solicitado
+  REFUND_IN_PROGRESS // Estorno em processamento
+  CHARGEBACK_REQUESTED // Chargeback solicitado
+  CHARGEBACK_DISPUTE  // Disputa de chargeback
+  AWAITING_CHARGEBACK_REVERSAL // Aguardando reversão de chargeback
+  DUNNING_REQUESTED // Negativação solicitada
+  DUNNING_RECEIVED  // Negativado
+  AWAITING_RISK_ANALYSIS // Aguardando análise de risco
+}
+
+enum PaymentMethod {
+  BOLETO
+  PIX
+  CREDIT_CARD
+  DEBIT_CARD
+  UNDEFINED
 }
 
 // ===========================================
@@ -341,3 +476,63 @@ model AuditLog {
   @@index([createdAt])
 }
 
+// ===========================================
+// WEBHOOK LOGS (para debug)
+// ===========================================
+
+model WebhookLog {
+  id          String    @id @default(cuid())
+  
+  event       String    // Tipo do evento
+  payload     Json      // Payload recebido
+  status      String    // SUCCESS, ERROR
+  error       String?   // Mensagem de erro se houver
+  
+  processedAt DateTime  @default(now())
+
+  @@index([event])
+  @@index([processedAt])
+}
+
+// ===========================================
+// SOLICITAÇÕES ENTERPRISE
+// ===========================================
+
+model EnterpriseRequest {
+  id          String    @id @default(cuid())
+  
+  // Dados da empresa
+  companyName String
+  contactName String
+  email       String
+  phone       String?
+  
+  // Informações adicionais
+  employees   Int?      // Número de funcionários
+  currentPlan String?   // Plano atual (se aplicável)
+  message     String?   @db.Text
+  
+  // Status
+  status      RequestStatus @default(PENDING)
+  notes       String?   @db.Text // Notas do admin
+  
+  // Relacionamentos
+  companyId   String?   // Se já tiver empresa cadastrada
+  company     Company?  @relation(fields: [companyId], references: [id])
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([status])
+  @@index([email])
+  @@index([createdAt])
+}
+
+enum RequestStatus {
+  PENDING     // Aguardando contato
+  CONTACTED   // Contatado
+  IN_PROGRESS // Em negociação
+  APPROVED    // Aprovado
+  REJECTED    // Rejeitado
+  CLOSED      // Fechado
+}

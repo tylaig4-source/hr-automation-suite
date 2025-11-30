@@ -1,10 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { signOut } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import {
-  Bell,
   Menu,
   Moon,
   Sun,
@@ -14,6 +13,8 @@ import {
   ChevronDown,
   Sparkles,
   BarChart3,
+  CreditCard,
+  Shield,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
@@ -28,28 +29,60 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { MobileSidebar } from "./mobile-sidebar";
 import { NotificationBell } from "@/components/notifications/notification-bell";
-import { cn } from "@/lib/utils";
 
 interface HeaderProps {
   user: {
     name: string | null;
     email: string;
     image: string | null;
+    role?: string;
   };
 }
 
 export function Header({ user }: HeaderProps) {
   const { theme, setTheme } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { data: session, update } = useSession();
+  
+  // Forçar atualização da sessão ao montar (para pegar role atualizado)
+  useEffect(() => {
+    // Atualizar sessão após um pequeno delay para garantir que o banco foi atualizado
+    const timer = setTimeout(() => {
+      update();
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [update]);
+  
+  // Usar role da sessão do cliente (mais atualizado) ou do prop
+  // Verificar ambos para garantir que funciona
+  const sessionRole = session?.user?.role;
+  const propRole = user.role;
+  const userRole = sessionRole || propRole;
+  const isAdmin = userRole === "ADMIN" || sessionRole === "ADMIN" || propRole === "ADMIN";
+  
+  // Debug temporário - remover após confirmar
+  useEffect(() => {
+    console.log("[Header Debug]", {
+      sessionRole,
+      propRole,
+      finalRole: userRole,
+      isAdmin,
+      email: user.email,
+      sessionExists: !!session
+    });
+  }, [sessionRole, propRole, userRole, isAdmin, user.email, session]);
+  
+  // Usar dados da sessão se disponível, senão usar props
+  const displayUser = session?.user || user;
 
-  const initials = user.name
-    ? user.name
+  const initials = displayUser.name
+    ? displayUser.name
       .split(" ")
       .map((n) => n[0])
       .join("")
       .toUpperCase()
       .slice(0, 2)
-    : user.email[0].toUpperCase();
+    : displayUser.email[0].toUpperCase();
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-6">
@@ -79,6 +112,20 @@ export function Header({ user }: HeaderProps) {
 
       {/* Actions */}
       <div className="flex items-center gap-2">
+        {/* Admin Link - sempre mostrar se for admin (mesmo que sessão não carregou) */}
+        {(isAdmin || user.role === "ADMIN") && (
+          <Link href="/admin">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="hidden sm:flex items-center gap-2 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-500/30 hover:bg-amber-50 dark:hover:bg-amber-500/10 font-medium"
+            >
+              <Shield className="h-4 w-4" />
+              <span>Painel Admin</span>
+            </Button>
+          </Link>
+        )}
+
         {/* Theme toggle */}
         <Button
           variant="ghost"
@@ -98,10 +145,10 @@ export function Header({ user }: HeaderProps) {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="gap-2 pl-2 pr-3">
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-sm font-medium">
-                {user.image ? (
+                {displayUser.image ? (
                   <img
-                    src={user.image}
-                    alt={user.name || ""}
+                    src={displayUser.image}
+                    alt={displayUser.name || ""}
                     className="w-8 h-8 rounded-full"
                   />
                 ) : (
@@ -109,7 +156,7 @@ export function Header({ user }: HeaderProps) {
                 )}
               </div>
               <div className="hidden md:block text-left">
-                <p className="text-sm font-medium">{user.name || "Usuário"}</p>
+                <p className="text-sm font-medium">{displayUser.name || "Usuário"}</p>
               </div>
               <ChevronDown className="h-4 w-4 text-muted-foreground" />
             </Button>
@@ -117,8 +164,8 @@ export function Header({ user }: HeaderProps) {
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>
               <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium">{user.name || "Usuário"}</p>
-                <p className="text-xs text-muted-foreground">{user.email}</p>
+                <p className="text-sm font-medium">{displayUser.name || "Usuário"}</p>
+                <p className="text-xs text-muted-foreground">{displayUser.email}</p>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
@@ -135,11 +182,28 @@ export function Header({ user }: HeaderProps) {
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
+              <Link href="/dashboard/plans" className="cursor-pointer">
+                <CreditCard className="mr-2 h-4 w-4" />
+                Planos
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
               <Link href="/dashboard/settings" className="cursor-pointer">
                 <Settings className="mr-2 h-4 w-4" />
                 Configurações
               </Link>
             </DropdownMenuItem>
+            {(isAdmin || user.role === "ADMIN") && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/admin" className="cursor-pointer text-amber-600 dark:text-amber-400 font-medium">
+                    <Shield className="mr-2 h-4 w-4" />
+                    Painel Admin
+                  </Link>
+                </DropdownMenuItem>
+              </>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem
               className="text-red-600 cursor-pointer"
@@ -154,4 +218,3 @@ export function Header({ user }: HeaderProps) {
     </header>
   );
 }
-

@@ -1,0 +1,45 @@
+import { getServerSession } from "next-auth";
+import { redirect } from "next/navigation";
+import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { EnterpriseRequestsClient } from "./enterprise-requests-client";
+
+export const metadata = {
+  title: "Solicitações Enterprise | Admin",
+  description: "Gerencie solicitações do plano Enterprise",
+};
+
+export default async function EnterpriseRequestsPage() {
+  const session = await getServerSession(authOptions);
+
+  if (!session) {
+    redirect("/login");
+  }
+
+  // Buscar role diretamente do banco de dados
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { role: true },
+  });
+
+  if (!user || user.role !== "ADMIN") {
+    redirect("/dashboard");
+  }
+
+  // Buscar todas as solicitações Enterprise do banco
+  const requests = await prisma.enterpriseRequest.findMany({
+    orderBy: { createdAt: "desc" },
+    include: {
+      company: {
+        select: {
+          id: true,
+          name: true,
+          plan: true,
+        },
+      },
+    },
+  });
+
+  return <EnterpriseRequestsClient requests={requests} />;
+}
+

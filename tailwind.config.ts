@@ -59,6 +59,14 @@ const config: Config = {
           warning: "#F59E0B",    // Amber
           danger: "#EF4444",     // Red
         },
+        // Neon Colors for Landing Page
+        neon: {
+          cyan: "#00ffff",
+          magenta: "#ff00ff",
+          purple: "#8b5cf6",
+          pink: "#ff0099",
+          blue: "#0099ff",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -86,6 +94,18 @@ const config: Config = {
           "0%, 100%": { opacity: "1" },
           "50%": { opacity: "0.5" },
         },
+        "glow": {
+          "0%, 100%": { opacity: "1", filter: "brightness(1)" },
+          "50%": { opacity: "0.8", filter: "brightness(1.2)" },
+        },
+        "float": {
+          "0%, 100%": { transform: "translateY(0px)" },
+          "50%": { transform: "translateY(-20px)" },
+        },
+        "spin-slow": {
+          from: { transform: "rotate(0deg)" },
+          to: { transform: "rotate(360deg)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -93,10 +113,19 @@ const config: Config = {
         "fade-in": "fade-in 0.3s ease-out",
         "slide-in": "slide-in 0.3s ease-out",
         "pulse-slow": "pulse-slow 2s ease-in-out infinite",
+        "glow": "glow 2s ease-in-out infinite",
+        "float": "float 6s ease-in-out infinite",
+        "spin-slow": "spin-slow 20s linear infinite",
       },
       fontFamily: {
-        sans: ["Inter", "system-ui", "sans-serif"],
+        sans: ["var(--font-inter)", "system-ui", "sans-serif"],
+        display: ["var(--font-syne)", "system-ui", "sans-serif"],
         mono: ["JetBrains Mono", "monospace"],
+      },
+      backgroundImage: {
+        "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
+        "gradient-conic": "conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))",
+        "neon-gradient": "linear-gradient(135deg, #00ffff 0%, #ff00ff 50%, #8b5cf6 100%)",
       },
     },
   },
@@ -107,4 +136,3 @@ const config: Config = {
 };
 
 export default config;
-

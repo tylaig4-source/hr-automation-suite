@@ -22,12 +22,21 @@ export default async function AdminPromptsPage({
 }) {
     const session = await getServerSession(authOptions);
 
-    // Verificação simples de admin (idealmente seria por role)
-    if (!session?.user) {
-        redirect("/auth/login");
+    if (!session) {
+        redirect("/login");
     }
 
-    // Buscar agentes
+    // Buscar role diretamente do banco de dados
+    const user = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { role: true },
+    });
+
+    if (!user || user.role !== "ADMIN") {
+        redirect("/dashboard");
+    }
+
+    // Buscar agentes diretamente do banco
     const agents = await prisma.agent.findMany({
         where: {
             name: {

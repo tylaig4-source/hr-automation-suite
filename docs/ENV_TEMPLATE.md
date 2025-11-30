@@ -46,6 +46,19 @@ OPENAI_API_KEY="sk-..."
 GEMINI_API_KEY="..."
 
 # --------------------------------------------
+# PAGAMENTOS (Stripe)
+# --------------------------------------------
+# Chave secreta do Stripe: https://dashboard.stripe.com/apikeys
+STRIPE_SECRET_KEY="sk_test_..."
+
+# Chave publicável do Stripe: https://dashboard.stripe.com/apikeys
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="pk_test_..."
+
+# Secret do webhook: Configure no Dashboard do Stripe
+# Desenvolvedores → Webhooks → Adicionar endpoint → Copiar Signing secret
+STRIPE_WEBHOOK_SECRET="whsec_..."
+
+# --------------------------------------------
 # GOOGLE OAUTH (Opcional)
 # --------------------------------------------
 # Para login com Google: https://console.cloud.google.com/
@@ -56,7 +69,7 @@ GEMINI_API_KEY="..."
 # APLICAÇÃO
 # --------------------------------------------
 NODE_ENV="development"
-APP_URL="http://localhost:3000"
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
 
 # --------------------------------------------
 # RATE LIMITING (Opcional)
@@ -73,9 +86,11 @@ MAX_TOKENS_PER_REQUEST=4000
 - [ ] Banco de dados criado: `hr_automation`
 - [ ] Chave da OpenAI ou Google Gemini obtida
 - [ ] `NEXTAUTH_SECRET` gerado com `openssl rand -base64 32`
+- [ ] Chaves do Stripe configuradas (para pagamentos)
 
 ### Opcional
 - [ ] Google OAuth configurado (para login social)
+- [ ] Webhook do Stripe configurado (para eventos de pagamento)
 - [ ] Variáveis de rate limiting customizadas
 
 ## 🚀 Quick Setup
@@ -92,6 +107,10 @@ openssl rand -base64 32
 # 4. Configure suas API keys
 # - OpenAI: https://platform.openai.com/api-keys
 # - Gemini: https://aistudio.google.com/apikey
+# - Stripe: https://dashboard.stripe.com/apikeys
+#   - Copie a Secret key (sk_test_...)
+#   - Copie a Publishable key (pk_test_...)
+#   - Configure webhook: https://dashboard.stripe.com/webhooks
 ```
 
 ## 📚 Mais Informações
