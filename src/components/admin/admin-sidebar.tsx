@@ -25,9 +25,19 @@ const adminNavItems = [
     icon: LayoutDashboard,
   },
   {
+    name: "Usuários",
+    href: "/admin/users",
+    icon: Users,
+  },
+  {
     name: "Empresas",
     href: "/admin/companies",
     icon: Building2,
+  },
+  {
+    name: "Planos",
+    href: "/admin/plans",
+    icon: CreditCard,
   },
   {
     name: "Assinaturas",

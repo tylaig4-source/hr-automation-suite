@@ -1,150 +1,119 @@
-// ===========================================
-// HR AUTOMATION SUITE - Seed do Banco de Dados
-// ===========================================
-
 import { PrismaClient } from "@prisma/client";
-import { categories, mvpAgents } from "../prompts";
 
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("🌱 Iniciando seed do banco de dados...\n");
+  console.log("🌱 Iniciando seed do banco de dados...");
 
-  // 1. Criar categorias
-  console.log("📁 Criando categorias...");
-  for (const category of categories) {
-    await prisma.category.upsert({
-      where: { slug: category.slug },
-      update: {
-        name: category.name,
-        description: category.description,
-        icon: category.icon,
-        color: category.color,
-        orderIndex: category.orderIndex,
-      },
-      create: {
-        id: category.id,
-        name: category.name,
-        slug: category.slug,
-        description: category.description,
-        icon: category.icon,
-        color: category.color,
-        orderIndex: category.orderIndex,
-        isActive: true,
-      },
-    });
-    console.log(`  ✅ ${category.name}`);
-  }
-  console.log(`  Total: ${categories.length} categorias\n`);
-
-  // 2. Criar agentes do MVP
-  console.log("🤖 Criando agentes...");
-  for (const agent of mvpAgents) {
-    // Buscar categoria pelo ID
-    const category = await prisma.category.findFirst({
-      where: { 
-        OR: [
-          { id: agent.categoryId },
-          { slug: agent.categoryId }
-        ]
-      },
-    });
-
-    if (!category) {
-      console.log(`  ⚠️ Categoria não encontrada para agente: ${agent.name}`);
-      continue;
-    }
-
-    await prisma.agent.upsert({
-      where: { slug: agent.slug },
-      update: {
-        name: agent.name,
-        description: agent.description,
-        shortDescription: agent.shortDescription,
-        promptTemplate: agent.promptTemplate,
-        systemPrompt: agent.systemPrompt,
-        inputSchema: agent.inputSchema as any,
-        estimatedTimeSaved: agent.estimatedTimeSaved,
-        temperature: agent.temperature,
-        maxTokens: agent.maxTokens,
-        model: agent.model,
-        isPremium: agent.isPremium || false,
-      },
-      create: {
-        id: agent.id,
-        categoryId: category.id,
-        name: agent.name,
-        slug: agent.slug,
-        description: agent.description,
-        shortDescription: agent.shortDescription,
-        promptTemplate: agent.promptTemplate,
-        systemPrompt: agent.systemPrompt,
-        inputSchema: agent.inputSchema as any,
-        estimatedTimeSaved: agent.estimatedTimeSaved,
-        temperature: agent.temperature || 0.7,
-        maxTokens: agent.maxTokens || 4000,
-        model: agent.model || "gpt-4-turbo-preview",
-        isPremium: agent.isPremium || false,
-        isActive: true,
-        version: 1,
-      },
-    });
-    console.log(`  ✅ ${agent.name}`);
-  }
-  console.log(`  Total: ${mvpAgents.length} agentes\n`);
-
-  // 3. Criar empresa demo (opcional)
-  console.log("🏢 Criando empresa demo...");
-  const demoCompany = await prisma.company.upsert({
-    where: { slug: "empresa-demo" },
-    update: {},
-    create: {
-      name: "Empresa Demo",
-      slug: "empresa-demo",
-      plan: "PROFESSIONAL",
-      maxUsers: 10,
+  // Criar planos
+  const plans = [
+    {
+      planId: "TRIAL",
+      name: "Trial",
+      description: "Teste grátis por 3 dias",
+      monthlyPrice: 0,
+      yearlyPrice: 0,
+      yearlyTotal: 0,
+      maxUsers: 1,
+      maxExecutions: 50,
+      maxCredits: 50,
+      features: [
+        "1 usuário",
+        "50 requisições",
+        "50 créditos",
+        "Todos os 34 agentes",
+        "Todas as 8 categorias",
+        "Exportação PDF",
+        "Histórico de 30 dias",
+        "Suporte por e-mail",
+      ],
+      isActive: true,
+      isPopular: false,
+      isTrial: true,
+      isEnterprise: false,
+      orderIndex: 0,
+    },
+    {
+      planId: "PROFESSIONAL",
+      name: "Professional",
+      description: "Para PMEs e times de RH",
+      monthlyPrice: 597,
+      yearlyPrice: 497,
+      yearlyTotal: 5964,
+      maxUsers: 5,
       maxExecutions: 500,
-      settings: {
-        theme: "light",
-        language: "pt-BR",
-      },
+      maxCredits: 500,
+      features: [
+        "Até 5 usuários",
+        "500 requisições por mês",
+        "Todos os 34 agentes de IA",
+        "Todas as 8 categorias",
+        "Exportação PDF e Word",
+        "Histórico de 12 meses",
+        "Suporte por chat e e-mail",
+        "Templates ilimitados",
+      ],
+      isActive: true,
+      isPopular: true,
+      isTrial: false,
+      isEnterprise: false,
+      orderIndex: 1,
     },
-  });
-  console.log(`  ✅ ${demoCompany.name}\n`);
-
-  // 4. Criar usuário admin demo (opcional)
-  console.log("👤 Criando usuário admin demo...");
-  const bcrypt = require("bcryptjs");
-  const hashedPassword = await bcrypt.hash("demo123", 10);
-  
-  const demoUser = await prisma.user.upsert({
-    where: { email: "admin@demo.com" },
-    update: {},
-    create: {
-      email: "admin@demo.com",
-      name: "Admin Demo",
-      password: hashedPassword,
-      role: "COMPANY_ADMIN",
-      companyId: demoCompany.id,
+    {
+      planId: "ENTERPRISE",
+      name: "Enterprise",
+      description: "Para grandes empresas e multinacionais",
+      monthlyPrice: null,
+      yearlyPrice: null,
+      yearlyTotal: null,
+      maxUsers: null, // Ilimitado
+      maxExecutions: null, // Ilimitado
+      maxCredits: null, // Ilimitado
+      features: [
+        "Usuários ilimitados",
+        "Requisições ilimitadas",
+        "Agentes customizados para sua empresa",
+        "Integrações (ATS, HRIS, ERP)",
+        "SSO e autenticação corporativa",
+        "API dedicada",
+        "Gerente de conta exclusivo",
+        "SLA garantido + Treinamento",
+      ],
+      isActive: true,
+      isPopular: false,
+      isTrial: false,
+      isEnterprise: true,
+      orderIndex: 2,
     },
-  });
-  console.log(`  ✅ ${demoUser.email}\n`);
+  ];
 
-  console.log("✨ Seed concluído com sucesso!\n");
-  console.log("📊 Resumo:");
-  console.log(`   - ${categories.length} categorias`);
-  console.log(`   - ${mvpAgents.length} agentes`);
-  console.log(`   - 1 empresa demo`);
-  console.log(`   - 1 usuário admin (admin@demo.com / demo123)`);
+  for (const plan of plans) {
+    const existing = await prisma.plan.findUnique({
+      where: { planId: plan.planId },
+    });
+
+    if (existing) {
+      console.log(`📝 Atualizando plano ${plan.planId}...`);
+      await prisma.plan.update({
+        where: { planId: plan.planId },
+        data: plan,
+      });
+    } else {
+      console.log(`✨ Criando plano ${plan.planId}...`);
+      await prisma.plan.create({
+        data: plan,
+      });
+    }
+  }
+
+  console.log("✅ Seed concluído com sucesso!");
 }
 
 main()
-  .then(async () => {
-    await prisma.$disconnect();
-  })
-  .catch(async (e) => {
+  .catch((e) => {
     console.error("❌ Erro no seed:", e);
-    await prisma.$disconnect();
     process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
   });
-
