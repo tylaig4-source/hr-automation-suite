@@ -51,6 +51,7 @@ Profissionais de RH gastam em média 60-70% do seu tempo em tarefas operacionais
 - 👥 **Painel Administrativo** - Gerenciamento de empresas, usuários e pagamentos
 - 🎨 **Interface Moderna** - Design responsivo com dark mode
 - 🔄 **Multi-Provider IA** - OpenAI GPT-4 e Google Gemini com fallback automático
+- ⚙️ **Modelos Configuráveis** - Configure modelos via variáveis de ambiente
 - ⚡ **Cache e Rate Limiting** - Via Redis
 - 📱 **Totalmente Responsivo** - Funciona em desktop, tablet e mobile
 
@@ -95,7 +96,7 @@ Total: 34 agentes especializados (8 implementados no MVP)
 | **Cache** | Redis 7 (via Docker) |
 | **Autenticação** | NextAuth.js |
 | **Pagamentos** | Stripe (Cartão de Crédito e PIX) |
-| **IA** | OpenAI GPT-4 / Google Gemini (multi-provider) |
+| **IA** | OpenAI GPT-4 / Google Gemini (multi-provider com fallback automático) |
 
 ---
 
@@ -133,6 +134,8 @@ O script irá:
 **Após a instalação:**
 1. Configure suas API keys no arquivo `.env.local`:
    - `OPENAI_API_KEY="sk-..."` ou `GEMINI_API_KEY="..."`
+   - `OPENAI_MODEL="gpt-4-turbo-preview"` (opcional)
+   - `GEMINI_MODEL="gemini-3-pro-preview"` (opcional)
    - `STRIPE_SECRET_KEY="sk_test_..."` (para pagamentos)
    - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="pk_test_..."` (para checkout)
 
@@ -213,7 +216,13 @@ NEXTAUTH_SECRET="gere-uma-chave-secreta-segura-aqui"
 # IA (Configure pelo menos um)
 # ===========================================
 OPENAI_API_KEY="sk-..."           # https://platform.openai.com/api-keys
+OPENAI_MODEL="gpt-4-turbo-preview" # Modelo OpenAI (opcional, padrão: gpt-4-turbo-preview)
+                                  # Exemplos: gpt-4-turbo-preview, gpt-4, gpt-3.5-turbo
+
 GEMINI_API_KEY="..."              # https://aistudio.google.com/apikey
+GEMINI_MODEL="gemini-1.5-flash"   # Modelo Gemini (opcional, padrão: gemini-1.5-flash)
+                                  # Exemplos: gemini-pro, gemini-1.5-pro, gemini-1.5-flash,
+                                  #           gemini-2.0-flash-exp, gemini-3-pro-preview
 
 # ===========================================
 # PAGAMENTOS (Stripe)
@@ -314,6 +323,44 @@ Ver [PROJECT_STRUCTURE.md](./PROJECT_STRUCTURE.md) para detalhes completos.
 | 8 | Roteiro de Entrevista de Desligamento | Desligamento | ~90% |
 
 **Total:** 8 agentes funcionais (26 restantes planejados)
+
+---
+
+## ⚙️ Configuração de Modelos de IA
+
+O sistema suporta múltiplos providers de IA com fallback automático. Você pode configurar qual modelo usar através de variáveis de ambiente:
+
+### Modelos Disponíveis
+
+**OpenAI** (via `OPENAI_MODEL`):
+- `gpt-4-turbo-preview` (padrão)
+- `gpt-4`
+- `gpt-3.5-turbo`
+
+**Gemini** (via `GEMINI_MODEL`):
+- `gemini-1.5-flash` (padrão, mais rápido)
+- `gemini-1.5-pro` (mais preciso)
+- `gemini-3-pro-preview` (mais recente)
+- `gemini-2.0-flash-exp` (experimental)
+- `gemini-pro` (versão anterior)
+
+### Exemplo de Configuração
+
+```env
+# No arquivo .env.local
+OPENAI_API_KEY="sk-..."
+OPENAI_MODEL="gpt-4-turbo-preview"
+
+GEMINI_API_KEY="..."
+GEMINI_MODEL="gemini-3-pro-preview"
+```
+
+### Fallback Automático
+
+Quando configurado como `provider: "auto"`, o sistema:
+1. Tenta OpenAI primeiro (se `OPENAI_API_KEY` estiver configurada)
+2. Se falhar, tenta Gemini automaticamente (se `GEMINI_API_KEY` estiver configurada)
+3. Retorna erro apenas se ambos falharem
 
 ---
 
