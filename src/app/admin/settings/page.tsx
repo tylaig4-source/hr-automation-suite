@@ -59,15 +59,15 @@ export default async function AdminSettingsPage() {
 
       {/* Settings Tabs */}
       <div className="grid gap-6">
-        {/* Asaas Integration */}
+        {/* Stripe Integration */}
         <div className="rounded-2xl border border-white/10 bg-white/5">
           <div className="flex items-center gap-3 border-b border-white/10 p-6">
             <div className="p-2 rounded-xl bg-green-500/20">
               <Shield className="h-5 w-5 text-green-400" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-white">Integração Asaas</h2>
-              <p className="text-sm text-gray-400">Configure a integração com o gateway de pagamentos</p>
+              <h2 className="text-lg font-semibold text-white">Integração Stripe</h2>
+              <p className="text-sm text-gray-400">Configure a integração com o gateway de pagamentos Stripe</p>
             </div>
           </div>
           <div className="p-6">
@@ -82,8 +82,8 @@ export default async function AdminSettingsPage() {
               <Webhook className="h-5 w-5 text-neon-cyan" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-white">Webhooks</h2>
-              <p className="text-sm text-gray-400">Configure os endpoints de webhook para receber eventos do Asaas</p>
+              <h2 className="text-lg font-semibold text-white">Webhooks Stripe</h2>
+              <p className="text-sm text-gray-400">Configure os endpoints de webhook para receber eventos do Stripe</p>
             </div>
           </div>
           <div className="p-6">
@@ -140,14 +140,14 @@ export default async function AdminSettingsPage() {
           <div className="p-6">
             <div className="space-y-4">
               {[
-                { event: "PAYMENT_RECEIVED", description: "Pagamento confirmado", action: "Ativa/renova assinatura" },
-                { event: "PAYMENT_CONFIRMED", description: "Pagamento aprovado", action: "Confirma transação" },
-                { event: "PAYMENT_OVERDUE", description: "Pagamento vencido", action: "Marca como inadimplente" },
-                { event: "PAYMENT_DELETED", description: "Pagamento cancelado", action: "Cancela cobrança" },
-                { event: "PAYMENT_REFUNDED", description: "Pagamento estornado", action: "Processa estorno" },
-                { event: "SUBSCRIPTION_CREATED", description: "Assinatura criada", action: "Registra nova assinatura" },
-                { event: "SUBSCRIPTION_UPDATED", description: "Assinatura atualizada", action: "Atualiza dados" },
-                { event: "SUBSCRIPTION_DELETED", description: "Assinatura cancelada", action: "Cancela acesso" },
+                { event: "payment_intent.succeeded", description: "Pagamento confirmado", action: "Ativa/renova assinatura" },
+                { event: "payment_intent.payment_failed", description: "Pagamento falhou", action: "Marca como falho" },
+                { event: "invoice.payment_succeeded", description: "Fatura paga", action: "Confirma transação" },
+                { event: "invoice.payment_failed", description: "Fatura não paga", action: "Marca como inadimplente" },
+                { event: "charge.refunded", description: "Estorno realizado", action: "Processa estorno" },
+                { event: "customer.subscription.created", description: "Assinatura criada", action: "Registra nova assinatura" },
+                { event: "customer.subscription.updated", description: "Assinatura atualizada", action: "Atualiza dados" },
+                { event: "customer.subscription.deleted", description: "Assinatura cancelada", action: "Cancela acesso" },
               ].map((item) => (
                 <div key={item.event} className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/10">
                   <div>

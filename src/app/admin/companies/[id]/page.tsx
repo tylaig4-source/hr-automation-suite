@@ -66,7 +66,7 @@ async function getCompany(id: string) {
 export default async function AdminCompanyDetailPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }> | { id: string };
 }) {
   const session = await getServerSession(authOptions);
 
@@ -84,8 +84,12 @@ export default async function AdminCompanyDetailPage({
     redirect("/dashboard");
   }
 
+  // Resolver params (pode ser Promise no Next.js 14+)
+  const resolvedParams = await Promise.resolve(params);
+  const companyId = resolvedParams.id;
+
   // Buscar empresa diretamente do banco
-  const company = await getCompany(params.id);
+  const company = await getCompany(companyId);
 
   if (!company) {
     notFound();
@@ -255,7 +259,7 @@ export default async function AdminCompanyDetailPage({
                   className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/5"
                 >
                   <div>
-                    <p className="font-medium text-white">{execution.agent.name}</p>
+                    <p className="font-medium text-white">{execution.agent?.name || "Agente desconhecido"}</p>
                     <div className="flex items-center gap-2 text-sm text-gray-400">
                       <span>{execution.user.name || execution.user.email}</span>
                       <span>•</span>
