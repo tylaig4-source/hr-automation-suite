@@ -42,8 +42,16 @@ NEXTAUTH_SECRET="gere-uma-chave-secreta-segura-aqui"
 # OpenAI API Key: https://platform.openai.com/api-keys
 OPENAI_API_KEY="sk-..."
 
+# Modelo OpenAI (opcional, padrão: gpt-4-turbo-preview)
+# Exemplos: gpt-4-turbo-preview, gpt-4, gpt-3.5-turbo
+OPENAI_MODEL="gpt-4-turbo-preview"
+
 # Google Gemini API Key: https://aistudio.google.com/apikey
 GEMINI_API_KEY="..."
+
+# Modelo Gemini (opcional, padrão: gemini-1.5-flash)
+# Exemplos: gemini-pro, gemini-1.5-pro, gemini-1.5-flash, gemini-2.0-flash-exp, gemini-3-pro-preview
+GEMINI_MODEL="gemini-1.5-flash"
 
 # --------------------------------------------
 # PAGAMENTOS (Stripe)
