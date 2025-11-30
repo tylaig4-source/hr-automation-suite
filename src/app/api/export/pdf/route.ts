@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
       companyName: undefined, // TODO: pegar da empresa do usuário
     });
 
-    return new NextResponse(result.buffer, {
+    return new NextResponse(result.buffer as any, {
       status: 200,
       headers: {
         "Content-Type": result.mimeType,

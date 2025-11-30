@@ -10,8 +10,8 @@ if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error("STRIPE_SECRET_KEY is not configured");
 }
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: "2024-12-18.acacia",
+export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "sk_test_dummy", {
+  apiVersion: "2025-11-17.clover",
   typescript: true,
 });
 
@@ -270,8 +270,8 @@ export async function createPixPayment(data: {
   // Para PIX, o QR Code está disponível no next_action após criar o PaymentIntent
   // Não precisamos confirmar imediatamente - o cliente confirma ao pagar
   const nextAction = paymentIntent.next_action;
-  const pixData = nextAction?.type === "display_bank_transfer_details" 
-    ? nextAction.display_bank_transfer_details 
+  const pixData = nextAction?.type === "display_bank_transfer_details"
+    ? (nextAction as any).display_bank_transfer_details
     : null;
   
   return {
