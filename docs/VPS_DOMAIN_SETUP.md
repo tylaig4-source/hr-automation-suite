@@ -1,116 +1,86 @@
-# 🌐 Configurar Domínio na VPS
+# Configuração de Domínio no Nginx
 
-Guia completo para configurar seu domínio personalizado com SSL gratuito (Let's Encrypt).
+Este guia mostra como configurar seu domínio no Nginx e obter certificado SSL com Let's Encrypt.
 
 ## 📋 Pré-requisitos
 
-1. ✅ Domínio comprado e configurado
-2. ✅ Acesso ao painel do seu provedor de domínio (Registro.br, GoDaddy, etc.)
-3. ✅ VPS com IP público
-4. ✅ Aplicação rodando com PM2
+- Domínio apontando para o IP do servidor (DNS configurado)
+- Nginx instalado e rodando
+- Porta 80 e 443 liberadas no firewall
+- Acesso root ou sudo
 
-## 🔧 Passo 1: Configurar DNS do Domínio
+## 🔧 Passo 1: Verificar DNS
 
-### 1.1 Obter IP da VPS
-
-```bash
-# Na sua VPS, execute:
-curl ifconfig.me
-# Ou
-hostname -I
-```
-
-Anote o IP que aparecer (exemplo: `45.33.32.1`)
-
-### 1.2 Configurar DNS no Provedor
-
-Acesse o painel do seu provedor de domínio e configure os registros DNS:
-
-#### Opção A: Registro A (Recomendado)
-
-```
-Tipo: A
-Nome: @ (ou deixe em branco)
-Valor: SEU_IP_DA_VPS
-TTL: 3600 (ou padrão)
-```
-
-#### Opção B: Subdomínio (ex: app.seudominio.com)
-
-```
-Tipo: A
-Nome: app
-Valor: SEU_IP_DA_VPS
-TTL: 3600
-```
-
-#### Opção C: Com www
-
-Crie dois registros:
-
-```
-Registro 1:
-Tipo: A
-Nome: @
-Valor: SEU_IP_DA_VPS
-
-Registro 2:
-Tipo: A
-Nome: www
-Valor: SEU_IP_DA_VPS
-```
-
-**Exemplo prático:**
-- Domínio: `meusistema.com`
-- IP da VPS: `45.33.32.1`
-
-Configuração:
-```
-A    @    45.33.32.1
-A    www  45.33.32.1
-```
-
-### 1.3 Verificar Propagação DNS
-
-Aguarde alguns minutos (pode levar até 48h, mas geralmente é rápido) e verifique:
+Antes de começar, verifique se o domínio está apontando para o IP do servidor:
 
 ```bash
-# No seu computador local, execute:
-nslookup meusistema.com
-# Ou
-dig meusistema.com
+# Verificar se o DNS está configurado
+dig seu-dominio.com +short
+# ou
+nslookup seu-dominio.com
 
-# Deve retornar o IP da sua VPS
+# Deve retornar o IP do seu servidor
 ```
 
-**Ou use ferramentas online:**
-- https://dnschecker.org
-- https://www.whatsmydns.net
-
----
-
-## 🚀 Passo 2: Instalar e Configurar Nginx
-
-### 2.1 Instalar Nginx
+## 🔧 Passo 2: Instalar Certbot (Let's Encrypt)
 
 ```bash
+# Atualizar pacotes
 sudo apt update
-sudo apt install -y nginx
+
+# Instalar Certbot
+sudo apt install certbot python3-certbot-nginx -y
 ```
 
-### 2.2 Criar Configuração do Domínio
+## 🔧 Passo 3: Configurar Nginx para o Domínio
+
+### 3.1 Criar/Editar Configuração do Nginx
 
 ```bash
+# Editar configuração do Nginx
 sudo nano /etc/nginx/sites-available/hr-automation-suite
 ```
 
-Cole este conteúdo (substitua `meusistema.com` pelo seu domínio):
+### 3.2 Configuração Completa (HTTP + HTTPS)
+
+Substitua `seu-dominio.com` pelo seu domínio real:
 
 ```nginx
+# HTTP - Redirecionar para HTTPS
 server {
     listen 80;
-    server_name meusistema.com www.meusistema.com;
+    server_name seu-dominio.com www.seu-dominio.com;
 
+    # Redirecionar tudo para HTTPS
+    return 301 https://$server_name$request_uri;
+}
+
+# HTTPS - Configuração Principal
+server {
+    listen 443 ssl http2;
+    server_name seu-dominio.com www.seu-dominio.com;
+
+    # Certificados SSL (serão gerados pelo Certbot)
+    ssl_certificate /etc/letsencrypt/live/seu-dominio.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/seu-dominio.com/privkey.pem;
+
+    # Configurações SSL recomendadas
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers on;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 10m;
+
+    # Headers de segurança
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+
+    # Tamanho máximo de upload
+    client_max_body_size 10M;
+
+    # Proxy para Next.js
     location / {
         proxy_pass http://localhost:3000;
         proxy_http_version 1.1;
@@ -122,319 +92,193 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_cache_bypass $http_upgrade;
         
-        # Timeouts para evitar erros
+        # Timeouts
         proxy_connect_timeout 60s;
         proxy_send_timeout 60s;
         proxy_read_timeout 60s;
     }
-}
-```
 
-**Se usar subdomínio (ex: app.seudominio.com):**
-```nginx
-server {
-    listen 80;
-    server_name app.seudominio.com;
-
-    location / {
+    # WebSocket support
+    location /_next/webpack-hmr {
         proxy_pass http://localhost:3000;
-        # ... resto igual acima
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
     }
 }
 ```
 
-### 2.3 Ativar Site
+### 3.3 Habilitar Site
 
 ```bash
-# Criar link simbólico
+# Criar link simbólico (se ainda não existir)
 sudo ln -s /etc/nginx/sites-available/hr-automation-suite /etc/nginx/sites-enabled/
-
-# Remover site padrão (opcional)
-sudo rm /etc/nginx/sites-enabled/default
 
 # Testar configuração
 sudo nginx -t
 
-# Se aparecer "syntax is ok", reinicie:
-sudo systemctl restart nginx
-
-# Verificar status
-sudo systemctl status nginx
+# Se tudo estiver OK, recarregar Nginx
+sudo systemctl reload nginx
 ```
 
-### 2.4 Abrir Portas no Firewall
+## 🔧 Passo 4: Obter Certificado SSL
+
+### 4.1 Gerar Certificado com Certbot
 
 ```bash
-# Permitir HTTP (porta 80)
-sudo ufw allow 80/tcp
+# Substitua seu-dominio.com pelo seu domínio
+sudo certbot --nginx -d seu-dominio.com -d www.seu-dominio.com
 
-# Permitir HTTPS (porta 443)
-sudo ufw allow 443/tcp
-
-# Verificar
-sudo ufw status
+# O Certbot irá:
+# 1. Verificar o domínio
+# 2. Gerar os certificados
+# 3. Atualizar automaticamente a configuração do Nginx
+# 4. Configurar renovação automática
 ```
 
-### 2.5 Testar (sem SSL ainda)
-
-Acesse no navegador: `http://meusistema.com`
-
-Deve funcionar! (mas ainda sem SSL, então aparecerá "Não seguro")
-
----
-
-## 🔒 Passo 3: Configurar SSL com Let's Encrypt (HTTPS)
-
-### 3.1 Instalar Certbot
+### 4.2 Verificar Renovação Automática
 
 ```bash
-sudo apt install -y certbot python3-certbot-nginx
-```
-
-### 3.2 Obter Certificado SSL
-
-```bash
-# Substitua pelo seu domínio
-sudo certbot --nginx -d meusistema.com -d www.meusistema.com
-```
-
-**Ou se usar subdomínio:**
-```bash
-sudo certbot --nginx -d app.seudominio.com
-```
-
-### 3.3 Durante a Instalação
-
-O Certbot vai perguntar:
-
-1. **Email:** Digite seu email (para notificações de renovação)
-2. **Termos:** Digite `A` para aceitar
-3. **Compartilhar email:** Digite `N` (não compartilhar)
-4. **Redirecionar HTTP para HTTPS:** Digite `2` (recomendado)
-
-### 3.4 Verificar Renovação Automática
-
-```bash
-# Testar renovação (não renova de verdade, só testa)
+# Testar renovação (não vai renovar, só testar)
 sudo certbot renew --dry-run
-```
 
-O certificado será renovado automaticamente antes de expirar.
-
-### 3.5 Verificar Certificado
-
-```bash
-# Ver certificados instalados
-sudo certbot certificates
-```
-
----
-
-## ✅ Passo 4: Verificar Tudo
-
-### 4.1 Verificar Nginx
-
-```bash
-# Verificar status
-sudo systemctl status nginx
-
-# Verificar configuração
-sudo nginx -t
-
-# Ver logs (se houver problemas)
-sudo tail -f /var/log/nginx/error.log
-```
-
-### 4.2 Verificar PM2
-
-```bash
-# Ver status da aplicação
-pm2 status
-
-# Ver logs
-pm2 logs hr-automation-suite
-```
-
-### 4.3 Testar Acesso
-
-1. **HTTP (deve redirecionar para HTTPS):**
-   - `http://meusistema.com` → deve redirecionar para HTTPS
-
-2. **HTTPS (deve funcionar):**
-   - `https://meusistema.com` → deve abrir com cadeado verde 🔒
-
-3. **Testar de outro computador:**
-   - Acesse de qualquer lugar: `https://meusistema.com`
-
----
-
-## 🔧 Passo 5: Atualizar Variáveis de Ambiente
-
-### 5.1 Atualizar NEXTAUTH_URL
-
-```bash
-cd /var/www/hr-automation-suite
-nano .env.local
-```
-
-Atualize:
-
-```env
-# Antes (exemplo):
-NEXTAUTH_URL="http://localhost:3000"
-
-# Depois:
-NEXTAUTH_URL="https://meusistema.com"
-```
-
-### 5.2 Reiniciar Aplicação
-
-```bash
-pm2 restart hr-automation-suite
-```
-
----
-
-## 🐛 Troubleshooting
-
-### Domínio não resolve
-
-1. **Verificar DNS:**
-   ```bash
-   nslookup meusistema.com
-   # Deve retornar o IP da VPS
-   ```
-
-2. **Aguardar propagação:**
-   - DNS pode levar até 48h para propagar
-   - Geralmente leva 5-30 minutos
-
-3. **Verificar configuração no provedor:**
-   - Confirme que o registro A está correto
-   - Verifique se não há cache DNS
-
-### Certbot falha
-
-1. **Verificar se porta 80 está aberta:**
-   ```bash
-   sudo ufw status
-   sudo ufw allow 80/tcp
-   ```
-
-2. **Verificar se Nginx está rodando:**
-   ```bash
-   sudo systemctl status nginx
-   ```
-
-3. **Verificar se domínio aponta para VPS:**
-   ```bash
-   dig meusistema.com
-   # Deve retornar IP da VPS
-   ```
-
-4. **Ver logs do Certbot:**
-   ```bash
-   sudo tail -f /var/log/letsencrypt/letsencrypt.log
-   ```
-
-### Nginx retorna 502 Bad Gateway
-
-1. **Verificar se aplicação está rodando:**
-   ```bash
-   pm2 status
-   curl http://localhost:3000
-   ```
-
-2. **Verificar proxy_pass:**
-   ```bash
-   sudo nano /etc/nginx/sites-available/hr-automation-suite
-   # Deve ter: proxy_pass http://localhost:3000;
-   ```
-
-3. **Reiniciar Nginx:**
-   ```bash
-   sudo systemctl restart nginx
-   ```
-
-### Certificado não renova automaticamente
-
-O Certbot cria um cron job automaticamente. Verificar:
-
-```bash
-# Ver cron jobs
-sudo crontab -l
-
-# Ou verificar timer do systemd
+# Verificar status do timer
 sudo systemctl status certbot.timer
 ```
 
----
+## 🔧 Passo 5: Atualizar Variáveis de Ambiente
 
-## 📝 Exemplo Completo
-
-**Cenário:**
-- Domínio: `meusistema.com`
-- IP da VPS: `45.33.32.1`
-- Aplicação rodando em `localhost:3000`
-
-**Comandos:**
+### 5.1 Editar .env
 
 ```bash
-# 1. Configurar DNS no provedor:
-# A    @    45.33.32.1
-# A    www  45.33.32.1
-
-# 2. Aguardar propagação (5-30 min)
-
-# 3. Instalar Nginx
-sudo apt install -y nginx
-
-# 4. Criar configuração
-sudo nano /etc/nginx/sites-available/hr-automation-suite
-# (cole a configuração acima com meusistema.com)
-
-# 5. Ativar
-sudo ln -s /etc/nginx/sites-available/hr-automation-suite /etc/nginx/sites-enabled/
-sudo nginx -t
-sudo systemctl restart nginx
-
-# 6. Abrir portas
-sudo ufw allow 80/tcp
-sudo ufw allow 443/tcp
-
-# 7. Instalar Certbot
-sudo apt install -y certbot python3-certbot-nginx
-
-# 8. Obter SSL
-sudo certbot --nginx -d meusistema.com -d www.meusistema.com
-
-# 9. Atualizar .env.local
-nano .env.local
-# NEXTAUTH_URL="https://meusistema.com"
-
-# 10. Reiniciar
-pm2 restart hr-automation-suite
-
-# ✅ Pronto! Acesse: https://meusistema.com
+cd /var/www/hr-automation-suite
+nano .env
 ```
 
----
+### 5.2 Atualizar URLs
 
-## 🔗 Próximos Passos
+Atualize as seguintes variáveis (substitua `seu-dominio.com`):
 
-1. ✅ Domínio configurado
-2. ✅ SSL ativado
-3. ✅ Aplicação acessível via HTTPS
-4. 🔄 Configure backups regulares
-5. 🔄 Configure monitoramento
-6. 🔄 Configure email (SMTP) se necessário
+```env
+# URL base da aplicação
+NEXTAUTH_URL=https://seu-dominio.com
+NEXT_PUBLIC_APP_URL=https://seu-dominio.com
 
----
+# Se usar Google OAuth, atualize também:
+# GOOGLE_CLIENT_ID=seu-client-id
+# GOOGLE_CLIENT_SECRET=seu-client-secret
+# E adicione https://seu-dominio.com/api/auth/callback/google nas URLs autorizadas no Google Console
+```
 
-## 💡 Dicas
+### 5.3 Reiniciar Aplicação
 
-- **Renovação automática:** O Certbot renova automaticamente, mas verifique periodicamente
-- **Backup:** Faça backup da configuração do Nginx: `sudo cp /etc/nginx/sites-available/hr-automation-suite ~/`
-- **Monitoramento:** Configure alertas para quando o certificado estiver próximo de expirar
-- **Performance:** Considere adicionar cache no Nginx para melhorar performance
+```bash
+# Reiniciar PM2 para aplicar novas variáveis
+pm2 restart hr-automation-suite
 
+# Verificar logs
+pm2 logs hr-automation-suite
+```
+
+## 🔧 Passo 6: Verificar Funcionamento
+
+### 6.1 Testar HTTP (deve redirecionar para HTTPS)
+
+```bash
+curl -I http://seu-dominio.com
+# Deve retornar: HTTP/1.1 301 Moved Permanently
+```
+
+### 6.2 Testar HTTPS
+
+```bash
+curl -I https://seu-dominio.com
+# Deve retornar: HTTP/2 200
+```
+
+### 6.3 Verificar SSL
+
+Acesse no navegador:
+- `https://seu-dominio.com`
+- Verifique o cadeado verde no navegador
+- Teste todas as rotas principais
+
+## 🔧 Passo 7: Configurar Google OAuth (se usar)
+
+Se você usa autenticação com Google, precisa atualizar:
+
+1. **Google Cloud Console**:
+   - Acesse: https://console.cloud.google.com/
+   - Vá em "APIs & Services" > "Credentials"
+   - Edite seu OAuth 2.0 Client ID
+   - Adicione nas "Authorized redirect URIs":
+     - `https://seu-dominio.com/api/auth/callback/google`
+   - Salve
+
+2. **Atualizar .env**:
+   ```env
+   GOOGLE_CLIENT_ID=seu-novo-client-id
+   GOOGLE_CLIENT_SECRET=seu-novo-client-secret
+   ```
+
+3. **Reiniciar aplicação**:
+   ```bash
+   pm2 restart hr-automation-suite
+   ```
+
+## 🔧 Passo 8: Configurar Stripe Webhooks (se usar)
+
+Se você usa Stripe, precisa atualizar a URL do webhook:
+
+1. **Stripe Dashboard**:
+   - Acesse: https://dashboard.stripe.com/webhooks
+   - Edite seu webhook
+   - Atualize a URL para: `https://seu-dominio.com/api/stripe/webhook`
+   - Salve
+
+2. **Atualizar .env** (se necessário):
+   ```env
+   STRIPE_WEBHOOK_SECRET=whsec_...
+   ```
+
+## ✅ Checklist Final
+
+- [ ] DNS apontando para o IP do servidor
+- [ ] Nginx configurado com domínio
+- [ ] Certificado SSL instalado e funcionando
+- [ ] Variáveis de ambiente atualizadas
+- [ ] Aplicação reiniciada
+- [ ] HTTPS funcionando no navegador
+- [ ] Google OAuth atualizado (se usar)
+- [ ] Stripe Webhooks atualizado (se usar)
+- [ ] Renovação automática de SSL configurada
+
+## 🐛 Troubleshooting
+
+### Erro: "Domain not pointing to this server"
+- Verifique se o DNS está propagado: `dig seu-dominio.com`
+- Aguarde alguns minutos para propagação DNS
+
+### Erro: "Port 80 already in use"
+- Verifique se há outro serviço usando a porta 80
+- `sudo netstat -tulpn | grep :80`
+
+### Certificado não renova automaticamente
+- Verifique o timer: `sudo systemctl status certbot.timer`
+- Ative o timer: `sudo systemctl enable certbot.timer`
+
+### Nginx não inicia
+- Teste configuração: `sudo nginx -t`
+- Verifique logs: `sudo tail -f /var/log/nginx/error.log`
+
+### Aplicação não carrega
+- Verifique se PM2 está rodando: `pm2 status`
+- Verifique logs: `pm2 logs hr-automation-suite`
+- Verifique se a aplicação está na porta 3000: `netstat -tulpn | grep :3000`
+
+## 📚 Referências
+
+- [Certbot Documentation](https://certbot.eff.org/)
+- [Nginx Documentation](https://nginx.org/en/docs/)
+- [Let's Encrypt](https://letsencrypt.org/)
