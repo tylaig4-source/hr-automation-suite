@@ -30,6 +30,10 @@ print_warning() {
     echo -e "${YELLOW}⚠️  $1${NC}"
 }
 
+print_info() {
+    echo -e "${BLUE}ℹ️  $1${NC}"
+}
+
 echo -e "${GREEN}"
 echo "╔════════════════════════════════════════════════════════════════╗"
 echo "║          HR AUTOMATION SUITE - Setup GitHub                  ║"
