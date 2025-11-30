@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
+import { getAbsoluteUrl } from "@/lib/url";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, Sparkles, Mail, Lock, User, AlertCircle, ArrowRight, Zap, Bot, Shield } from "lucide-react";
@@ -12,14 +13,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { registerSchema, type RegisterInput } from "@/lib/validations";
-import { OnboardingModal } from "@/components/onboarding/onboarding-modal";
-
 export default function RegisterPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showOnboarding, setShowOnboarding] = useState(false);
-  const [trialInfo, setTrialInfo] = useState<{ daysLeft: number; isTrialing: boolean } | null>(null);
 
   const {
     register,
@@ -60,20 +57,12 @@ export default function RegisterPage() {
 
       if (signInResult?.error) {
         // Conta criada, mas erro no login - redireciona para login
-        router.push("/login?registered=true");
+        const absoluteUrl = getAbsoluteUrl("/login?registered=true");
+        window.location.href = absoluteUrl;
       } else {
-        // Mostrar onboarding
-        if (result.trial) {
-          setTrialInfo({
-            daysLeft: result.trial.daysLeft || 3,
-            isTrialing: result.trial.isTrialing || true,
-          });
-          setShowOnboarding(true);
-        } else {
-          // Se não tiver trial info, redireciona direto
-          router.push("/dashboard");
-          router.refresh();
-        }
+        // Redireciona direto para dashboard (onboarding será mostrado lá)
+        const absoluteUrl = getAbsoluteUrl("/dashboard");
+        window.location.href = absoluteUrl;
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao criar conta");
@@ -335,17 +324,6 @@ export default function RegisterPage() {
         </div>
       </div>
 
-      {/* Onboarding Modal */}
-      <OnboardingModal
-        isOpen={showOnboarding}
-        onComplete={() => {
-          setShowOnboarding(false);
-          router.push("/dashboard");
-          router.refresh();
-        }}
-        isTrialing={trialInfo?.isTrialing || false}
-        trialDaysLeft={trialInfo?.daysLeft || 3}
-      />
     </div>
   );
 }

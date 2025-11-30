@@ -48,6 +48,14 @@ export async function GET(request: NextRequest) {
             }
         }
 
+        // Verificar se usuário é ADMIN (acesso ilimitado)
+        const user = await prisma.user.findUnique({
+            where: { id: session.user.id },
+            select: { role: true }
+        });
+
+        const isAdmin = user?.role === "ADMIN";
+
         const company = await prisma.company.findUnique({
             where: { id: companyId },
             select: {
@@ -82,8 +90,8 @@ export async function GET(request: NextRequest) {
             })
         ]);
 
-        // Se o plano for ENTERPRISE (ilimitado), credits pode ser irrelevante ou alto
-        const isUnlimited = company.plan === "ENTERPRISE";
+        // Admin ou ENTERPRISE tem acesso ilimitado
+        const isUnlimited = isAdmin || company.plan === "ENTERPRISE";
         const executionsPercentage = isUnlimited ? 0 : Math.min(100, (usedExecutions / company.maxExecutions) * 100);
         const usersPercentage = isUnlimited ? 0 : Math.min(100, (usedUsers / company.maxUsers) * 100);
 
@@ -99,11 +107,11 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.json({
             plan: company.plan,
-            credits: company.credits,
-            maxExecutions: company.maxExecutions,
+            credits: isAdmin ? 999999 : company.credits, // Admin tem créditos ilimitados
+            maxExecutions: isAdmin ? 999999 : company.maxExecutions, // Admin tem execuções ilimitadas
             usedExecutions,
             executionsPercentage,
-            maxUsers: company.maxUsers,
+            maxUsers: isAdmin ? 999999 : company.maxUsers, // Admin tem usuários ilimitados
             usedUsers,
             usersPercentage,
             percentage: executionsPercentage, // Mantido para compatibilidade
