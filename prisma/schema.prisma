@@ -1,0 +1,343 @@
+// ===========================================
+// HR AUTOMATION SUITE - Schema do Banco de Dados
+// ===========================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ===========================================
+// AUTENTICAÇÃO (NextAuth.js)
+// ===========================================
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ===========================================
+// USUÁRIOS E EMPRESAS
+// ===========================================
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?   // Para login com email/senha
+  role          UserRole  @default(HR_ANALYST)
+  
+  companyId     String?
+  company       Company?  @relation(fields: [companyId], references: [id])
+  
+  accounts      Account[]
+  sessions      Session[]
+  executions    Execution[]
+  templates     UserTemplate[]
+  notifications Notification[]
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([companyId])
+  @@index([email])
+}
+
+enum UserRole {
+  ADMIN           // Administrador do sistema
+  COMPANY_ADMIN   // Admin da empresa
+  HR_MANAGER      // Gerente de RH
+  HR_ANALYST      // Analista de RH
+  MANAGER         // Gestor/Líder
+  EMPLOYEE        // Colaborador (acesso limitado)
+}
+
+model Company {
+  id            String        @id @default(cuid())
+  name          String
+  slug          String        @unique
+  logo          String?
+  plan          CompanyPlan   @default(STARTER)
+  settings      Json?         // Configurações customizadas
+  
+  users         User[]
+  executions    Execution[]
+  customPrompts CompanyPrompt[]
+  
+  // Limites do plano
+  maxUsers      Int           @default(2)
+  maxExecutions Int           @default(100) // Por mês
+  credits       Int           @default(50)  // Créditos para uso de agentes
+  
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([slug])
+}
+
+enum CompanyPlan {
+  STARTER       // R$ 197/mês - 2 usuários, 100 execuções
+  PROFESSIONAL  // R$ 497/mês - 10 usuários, 500 execuções
+  ENTERPRISE    // Custom - Ilimitado
+}
+
+// ===========================================
+// NOTIFICAÇÕES
+// ===========================================
+
+model Notification {
+  id        String   @id @default(cuid())
+  
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  type      NotificationType @default(INFO)
+  link      String?
+  
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([read])
+}
+
+enum NotificationType {
+  INFO
+  SUCCESS
+  WARNING
+  ERROR
+}
+
+// ===========================================
+// CATEGORIAS E AGENTES
+// ===========================================
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String
+  slug        String    @unique
+  description String?
+  icon        String?   // Nome do ícone (lucide-react)
+  color       String?   // Cor do tema
+  orderIndex  Int       @default(0)
+  isActive    Boolean   @default(true)
+  
+  agents      Agent[]
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([slug])
+  @@index([orderIndex])
+}
+
+model Agent {
+  id                  String    @id @default(cuid())
+  categoryId          String
+  category            Category  @relation(fields: [categoryId], references: [id])
+  
+  name                String
+  slug                String    @unique
+  description         String?
+  shortDescription    String?   // Para cards
+  
+  // Prompt e configurações
+  promptTemplate      String    @db.Text  // Prompt com variáveis {{campo}}
+  systemPrompt        String?   @db.Text  // System message para a IA
+  inputSchema         Json                // Definição dos campos do formulário
+  outputTemplate      String?   @db.Text  // Estrutura esperada do output
+  
+  // Métricas
+  estimatedTimeSaved  Int?      // Minutos economizados
+  averageRating       Float?    @default(0)
+  totalExecutions     Int       @default(0)
+  
+  // Configurações
+  isActive            Boolean   @default(true)
+  isPremium           Boolean   @default(false) // Apenas planos superiores
+  version             Int       @default(1)
+  
+  // Configurações de IA
+  temperature         Float     @default(0.7)
+  maxTokens           Int       @default(4000)
+  model               String    @default("gpt-4-turbo-preview")
+  
+  executions          Execution[]
+  templates           UserTemplate[]
+  customPrompts       CompanyPrompt[]
+  
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([categoryId])
+  @@index([slug])
+  @@index([isActive])
+}
+
+// ===========================================
+// EXECUÇÕES
+// ===========================================
+
+model Execution {
+  id              String          @id @default(cuid())
+  
+  userId          String
+  user            User            @relation(fields: [userId], references: [id])
+  
+  companyId       String?
+  company         Company?        @relation(fields: [companyId], references: [id])
+  
+  agentId         String
+  agent           Agent           @relation(fields: [agentId], references: [id])
+  
+  // Dados da execução
+  inputs          Json            // Dados preenchidos pelo usuário
+  promptSent      String          @db.Text // Prompt final enviado para IA
+  output          String          @db.Text // Resposta da IA
+  
+  // Métricas
+  tokensUsed      Int?
+  executionTimeMs Int?
+  
+  // Feedback
+  rating          Int?            // 1-5
+  feedback        String?         // Comentário opcional
+  
+  // Status
+  status          ExecutionStatus @default(COMPLETED)
+  errorMessage    String?
+  
+  createdAt       DateTime        @default(now())
+  
+  @@index([userId])
+  @@index([companyId])
+  @@index([agentId])
+  @@index([createdAt])
+}
+
+enum ExecutionStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+// ===========================================
+// TEMPLATES DO USUÁRIO
+// ===========================================
+
+model UserTemplate {
+  id          String    @id @default(cuid())
+  
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  agentId     String
+  agent       Agent     @relation(fields: [agentId], references: [id])
+  
+  name        String
+  description String?
+  inputs      Json      // Inputs pré-preenchidos
+  
+  isDefault   Boolean   @default(false) // Template padrão para o agente
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([agentId])
+}
+
+// ===========================================
+// PROMPTS CUSTOMIZADOS POR EMPRESA
+// ===========================================
+
+model CompanyPrompt {
+  id                String    @id @default(cuid())
+  
+  companyId         String
+  company           Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  agentId           String
+  agent             Agent     @relation(fields: [agentId], references: [id])
+  
+  customPrompt      String?   @db.Text // Sobrescreve o prompt padrão
+  additionalContext String?   @db.Text // Contexto adicional da empresa
+  
+  isActive          Boolean   @default(true)
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@unique([companyId, agentId])
+  @@index([companyId])
+  @@index([agentId])
+}
+
+// ===========================================
+// LOGS E AUDITORIA (Opcional - para Enterprise)
+// ===========================================
+
+model AuditLog {
+  id          String    @id @default(cuid())
+  
+  userId      String?
+  companyId   String?
+  
+  action      String    // CREATE, UPDATE, DELETE, EXECUTE, etc.
+  resource    String    // Agent, Execution, User, etc.
+  resourceId  String?
+  
+  details     Json?     // Detalhes adicionais
+  ipAddress   String?
+  userAgent   String?
+  
+  createdAt   DateTime  @default(now())
+
+  @@index([userId])
+  @@index([companyId])
+  @@index([action])
+  @@index([createdAt])
+}
+

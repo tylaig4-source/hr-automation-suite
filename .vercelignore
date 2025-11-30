@@ -1,0 +1,17 @@
+# Arquivos e pastas a ignorar no deploy da Vercel
+
+.env.local
+.env*.local
+node_modules
+.next
+.DS_Store
+*.log
+docker-compose.yml
+docker-podman.sh
+Makefile
+.vscode
+.idea
+*.md
+docs/
+!README.md
+
