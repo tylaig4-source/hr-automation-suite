@@ -313,9 +313,10 @@ export function SubscriptionsClient({ subscriptions: initialSubscriptions, stats
                   <Badge
                     className={`${statusConfig[selectedSubscription.status]?.color || statusConfig.ACTIVE.color} border flex items-center gap-1 w-fit`}
                   >
-                    {statusConfig[selectedSubscription.status]?.icon && (
-                      <statusConfig[selectedSubscription.status].icon className="h-3 w-3" />
-                    )}
+                    {(() => {
+                      const StatusIcon = statusConfig[selectedSubscription.status]?.icon || CheckCircle;
+                      return <StatusIcon className="h-3 w-3" />;
+                    })()}
                     {statusConfig[selectedSubscription.status]?.label || selectedSubscription.status}
                   </Badge>
                 </div>
