@@ -1,6 +1,6 @@
 # 🌐 Configurar Domínio - Passo a Passo Rápido
 
-Guia direto para adicionar seu domínio (assumindo que Nginx já está configurado).
+Guia direto para adicionar seu domínio (assumindo que Nginx já está configurado por IP).
 
 ## ✅ Pré-requisitos (já feitos)
 
@@ -178,6 +178,7 @@ NEXTAUTH_URL="http://localhost:3000"
 E substitua por:
 ```env
 NEXTAUTH_URL="https://meusistema.com"
+NEXT_PUBLIC_APP_URL="https://meusistema.com"
 ```
 
 ### 4.3 Salvar e Reiniciar
@@ -293,4 +294,3 @@ pm2 restart hr-automation-suite
 - **Propagação DNS:** Pode levar 5-30 minutos, mas pode levar até 48h
 - **Renovação SSL:** O Certbot renova automaticamente, não precisa fazer nada
 - **Backup:** Faça backup da configuração: `sudo cp /etc/nginx/sites-available/hr-automation-suite ~/backup-nginx.conf`
-
