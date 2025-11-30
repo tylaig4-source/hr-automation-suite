@@ -9,8 +9,9 @@ import { useToast } from "@/hooks/use-toast";
 
 interface ApiSettingsProps {
   settings: {
-    asaasApiKey: string;
-    asaasEnvironment: string;
+    stripeSecretKey: string;
+    stripePublishableKey: string;
+    stripeEnvironment: string;
   };
 }
 
@@ -25,7 +26,7 @@ export function ApiSettings({ settings }: ApiSettingsProps) {
     setConnectionStatus(null);
 
     try {
-      const response = await fetch("/api/asaas/test-connection", {
+      const response = await fetch("/api/stripe/test-connection", {
         method: "POST",
       });
 
@@ -33,14 +34,14 @@ export function ApiSettings({ settings }: ApiSettingsProps) {
         setConnectionStatus("success");
         toast({
           title: "Conexão bem-sucedida!",
-          description: "A integração com o Asaas está funcionando corretamente.",
+          description: "A integração com o Stripe está funcionando corretamente.",
         });
       } else {
         const data = await response.json();
         setConnectionStatus("error");
         toast({
           title: "Erro na conexão",
-          description: data.error || "Não foi possível conectar ao Asaas.",
+          description: data.error || "Não foi possível conectar ao Stripe.",
           variant: "destructive",
         });
       }
@@ -64,28 +65,28 @@ export function ApiSettings({ settings }: ApiSettingsProps) {
         <div className="flex gap-4">
           <div
             className={`flex-1 p-4 rounded-xl border cursor-pointer transition-all ${
-              settings.asaasEnvironment === "sandbox"
+              settings.stripeEnvironment === "test"
                 ? "border-amber-400/50 bg-amber-400/10"
                 : "border-white/10 bg-white/5 opacity-50"
             }`}
           >
             <div className="flex items-center gap-3">
-              <div className={`w-3 h-3 rounded-full ${settings.asaasEnvironment === "sandbox" ? "bg-amber-400" : "bg-gray-500"}`} />
+              <div className={`w-3 h-3 rounded-full ${settings.stripeEnvironment === "test" ? "bg-amber-400" : "bg-gray-500"}`} />
               <div>
-                <p className="font-medium text-white">Sandbox</p>
+                <p className="font-medium text-white">Teste</p>
                 <p className="text-xs text-gray-400">Ambiente de testes</p>
               </div>
             </div>
           </div>
           <div
             className={`flex-1 p-4 rounded-xl border cursor-pointer transition-all ${
-              settings.asaasEnvironment === "production"
+              settings.stripeEnvironment === "production"
                 ? "border-green-400/50 bg-green-400/10"
                 : "border-white/10 bg-white/5 opacity-50"
             }`}
           >
             <div className="flex items-center gap-3">
-              <div className={`w-3 h-3 rounded-full ${settings.asaasEnvironment === "production" ? "bg-green-400" : "bg-gray-500"}`} />
+              <div className={`w-3 h-3 rounded-full ${settings.stripeEnvironment === "production" ? "bg-green-400" : "bg-gray-500"}`} />
               <div>
                 <p className="font-medium text-white">Produção</p>
                 <p className="text-xs text-gray-400">Ambiente real</p>
@@ -94,7 +95,7 @@ export function ApiSettings({ settings }: ApiSettingsProps) {
           </div>
         </div>
         <p className="text-sm text-gray-500">
-          Configure a variável ASAAS_ENVIRONMENT para alterar
+          O ambiente é detectado automaticamente pela chave API (sk_test_ = teste, sk_live_ = produção)
         </p>
       </div>
 
@@ -105,7 +106,7 @@ export function ApiSettings({ settings }: ApiSettingsProps) {
           <div className="flex-1 relative">
             <Input
               type={showApiKey ? "text" : "password"}
-              value={settings.asaasApiKey || "Não configurada"}
+              value={settings.stripeSecretKey || "Não configurada"}
               readOnly
               className="bg-white/5 border-white/10 text-white pr-10 font-mono"
             />
@@ -122,7 +123,7 @@ export function ApiSettings({ settings }: ApiSettingsProps) {
           </div>
           <Button
             onClick={handleTestConnection}
-            disabled={testing || !settings.asaasApiKey}
+            disabled={testing || !settings.stripeSecretKey}
             className={`${
               connectionStatus === "success"
                 ? "bg-green-500 hover:bg-green-600"
@@ -152,7 +153,7 @@ export function ApiSettings({ settings }: ApiSettingsProps) {
           </Button>
         </div>
         <p className="text-sm text-gray-500">
-          Configure a variável ASAAS_API_KEY com sua chave de API
+          Configure a variável STRIPE_SECRET_KEY com sua chave secreta da API
         </p>
       </div>
 
@@ -177,8 +178,8 @@ export function ApiSettings({ settings }: ApiSettingsProps) {
               </p>
               <p className="text-sm text-gray-400">
                 {connectionStatus === "success"
-                  ? "A API do Asaas está respondendo corretamente."
-                  : "Verifique se a API Key está correta e se o ambiente está configurado."}
+                  ? "A API do Stripe está respondendo corretamente."
+                  : "Verifique se a chave secreta está correta e se o ambiente está configurado."}
               </p>
             </div>
           </div>
@@ -187,30 +188,31 @@ export function ApiSettings({ settings }: ApiSettingsProps) {
 
       {/* Instructions */}
       <div className="p-4 rounded-xl bg-neon-purple/5 border border-neon-purple/20">
-        <h4 className="font-medium text-neon-purple mb-2">Como obter sua API Key:</h4>
+        <h4 className="font-medium text-neon-purple mb-2">Como obter suas chaves do Stripe:</h4>
         <ol className="text-sm text-gray-400 space-y-2 list-decimal list-inside">
-          <li>Acesse sua conta no Asaas</li>
-          <li>Vá em <strong className="text-white">Configurações → Integrações → API</strong></li>
-          <li>Copie sua chave de API</li>
-          <li>Configure a variável de ambiente ASAAS_API_KEY</li>
+          <li>Acesse sua conta no Stripe Dashboard</li>
+          <li>Vá em <strong className="text-white">Desenvolvedores → Chaves de API</strong></li>
+          <li>Copie a <strong className="text-white">Chave secreta</strong> (Secret key)</li>
+          <li>Copie a <strong className="text-white">Chave publicável</strong> (Publishable key)</li>
+          <li>Configure as variáveis de ambiente</li>
         </ol>
         <div className="mt-4 flex gap-4">
           <a
-            href="https://sandbox.asaas.com/accountApiKeys"
+            href="https://dashboard.stripe.com/test/apikeys"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 text-sm text-amber-400 hover:underline"
           >
-            API Key (Sandbox)
+            Chaves de Teste
             <ExternalLink className="h-3 w-3" />
           </a>
           <a
-            href="https://www.asaas.com/accountApiKeys"
+            href="https://dashboard.stripe.com/apikeys"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 text-sm text-green-400 hover:underline"
           >
-            API Key (Produção)
+            Chaves de Produção
             <ExternalLink className="h-3 w-3" />
           </a>
         </div>
@@ -221,17 +223,16 @@ export function ApiSettings({ settings }: ApiSettingsProps) {
         <h4 className="font-medium text-white mb-3">Variáveis de Ambiente Necessárias:</h4>
         <div className="font-mono text-sm space-y-2">
           <div className="p-2 rounded bg-black/30">
-            <span className="text-gray-400">ASAAS_API_KEY=</span>
-            <span className="text-neon-cyan">sua_api_key_aqui</span>
+            <span className="text-gray-400">STRIPE_SECRET_KEY=</span>
+            <span className="text-neon-cyan">sk_test_...</span>
           </div>
           <div className="p-2 rounded bg-black/30">
-            <span className="text-gray-400">ASAAS_ENVIRONMENT=</span>
-            <span className="text-amber-400">sandbox</span>
-            <span className="text-gray-500"> # ou production</span>
+            <span className="text-gray-400">NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=</span>
+            <span className="text-amber-400">pk_test_...</span>
           </div>
           <div className="p-2 rounded bg-black/30">
-            <span className="text-gray-400">ASAAS_WEBHOOK_TOKEN=</span>
-            <span className="text-neon-magenta">seu_token_secreto</span>
+            <span className="text-gray-400">STRIPE_WEBHOOK_SECRET=</span>
+            <span className="text-neon-magenta">whsec_...</span>
           </div>
         </div>
       </div>

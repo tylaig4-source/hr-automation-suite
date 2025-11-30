@@ -14,10 +14,21 @@ export default async function AdminAgentEditPage({
 }) {
     const session = await getServerSession(authOptions);
 
-    if (!session?.user) {
-        redirect("/auth/login");
+    if (!session) {
+        redirect("/login");
     }
 
+    // Buscar role diretamente do banco de dados
+    const user = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { role: true },
+    });
+
+    if (!user || user.role !== "ADMIN") {
+        redirect("/dashboard");
+    }
+
+    // Buscar agente diretamente do banco
     const agent = await prisma.agent.findUnique({
         where: { id: params.id },
     });

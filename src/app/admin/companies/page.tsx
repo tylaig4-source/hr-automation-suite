@@ -1,3 +1,6 @@
+import { getServerSession } from "next-auth";
+import { redirect } from "next/navigation";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { 
   Building2, 
@@ -77,6 +80,23 @@ export default async function AdminCompaniesPage({
 }: {
   searchParams: SearchParams;
 }) {
+  const session = await getServerSession(authOptions);
+
+  if (!session) {
+    redirect("/login");
+  }
+
+  // Buscar role diretamente do banco de dados
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { role: true },
+  });
+
+  if (!user || user.role !== "ADMIN") {
+    redirect("/dashboard");
+  }
+
+  // Buscar todas as empresas diretamente do banco
   const { companies, total, page, totalPages } = await getCompanies(searchParams);
 
   const planColors = {

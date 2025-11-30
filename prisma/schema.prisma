@@ -116,14 +116,14 @@ model Company {
   trialEndDate   DateTime?    // Data de término do trial
   isTrialing     Boolean      @default(true) // Se está em período de trial
   
-  // Asaas Customer ID
-  asaasCustomerId String?     @unique
+  // Stripe Customer ID
+  stripeCustomerId String?     @unique
   
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
   @@index([slug])
-  @@index([asaasCustomerId])
+  @@index([stripeCustomerId])
   @@index([isTrialing])
 }
 
@@ -135,7 +135,7 @@ enum CompanyPlan {
 }
 
 // ===========================================
-// ASSINATURAS E PAGAMENTOS (Asaas)
+// ASSINATURAS E PAGAMENTOS (Stripe)
 // ===========================================
 
 model Subscription {
@@ -144,8 +144,10 @@ model Subscription {
   companyId             String             @unique
   company               Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
   
-  // IDs do Asaas
-  asaasSubscriptionId   String?            @unique // ID da assinatura no Asaas
+  // IDs do Stripe
+  stripeSubscriptionId   String?            @unique // ID da assinatura no Stripe
+  stripePriceId         String?            // ID do preço no Stripe
+  stripePaymentMethodId  String?            // ID do método de pagamento salvo
   
   // Dados da assinatura
   planId                String             // STARTER, PROFESSIONAL, ENTERPRISE
@@ -167,7 +169,7 @@ model Subscription {
   updatedAt             DateTime           @updatedAt
 
   @@index([status])
-  @@index([asaasSubscriptionId])
+  @@index([stripeSubscriptionId])
 }
 
 enum SubscriptionStatus {
@@ -189,8 +191,9 @@ model Payment {
   companyId         String
   company           Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
   
-  // IDs do Asaas
-  asaasPaymentId    String        @unique  // ID do pagamento no Asaas
+  // IDs do Stripe
+  stripePaymentIntentId    String?        @unique  // ID do PaymentIntent no Stripe
+  stripeChargeId           String?                 // ID da cobrança no Stripe
   
   // Dados do pagamento
   value             Float                  // Valor
@@ -223,7 +226,8 @@ model Payment {
   @@index([companyId])
   @@index([status])
   @@index([dueDate])
-  @@index([asaasPaymentId])
+  @@index([stripePaymentIntentId])
+  @@index([stripeChargeId])
 }
 
 enum PaymentStatus {

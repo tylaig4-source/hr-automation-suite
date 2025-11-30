@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { AdminSidebar } from "@/components/admin/admin-sidebar";
 import { AdminHeader } from "@/components/admin/admin-header";
 
@@ -21,8 +22,24 @@ export default async function AdminLayout({
     redirect("/login");
   }
 
-  // Verificar se é admin
-  if (session.user.role !== "ADMIN") {
+  // Buscar role diretamente do banco de dados (sempre atualizado)
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      image: true,
+      role: true,
+    },
+  });
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  // Verificar se é admin (buscar direto do banco)
+  if (user.role !== "ADMIN") {
     redirect("/dashboard");
   }
 
@@ -33,7 +50,7 @@ export default async function AdminLayout({
 
       {/* Main content */}
       <div className="lg:pl-64">
-        <AdminHeader user={session.user} />
+        <AdminHeader user={user} />
         <main className="p-6">{children}</main>
       </div>
     </div>

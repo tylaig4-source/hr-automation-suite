@@ -46,6 +46,9 @@ Profissionais de RH gastam em média 60-70% do seu tempo em tarefas operacionais
 - 📊 **Histórico de Execuções** - Com paginação e filtros
 - 📈 **Analytics Básico** - Métricas e estatísticas
 - 📄 **Exportação PDF/DOCX** - Exportar resultados em documentos
+- 💳 **Sistema de Pagamentos** - Integração com Stripe (Cartão de Crédito e PIX)
+- 📦 **Planos e Assinaturas** - Sistema de planos com trial gratuito de 3 dias
+- 👥 **Painel Administrativo** - Gerenciamento de empresas, usuários e pagamentos
 - 🎨 **Interface Moderna** - Design responsivo com dark mode
 - 🔄 **Multi-Provider IA** - OpenAI GPT-4 e Google Gemini com fallback automático
 - ⚡ **Cache e Rate Limiting** - Via Redis
@@ -91,6 +94,7 @@ Total: 34 agentes especializados (8 implementados no MVP)
 | **Banco** | PostgreSQL 16 (via Docker) |
 | **Cache** | Redis 7 (via Docker) |
 | **Autenticação** | NextAuth.js |
+| **Pagamentos** | Stripe (Cartão de Crédito e PIX) |
 | **IA** | OpenAI GPT-4 / Google Gemini (multi-provider) |
 
 ---
@@ -128,8 +132,9 @@ O script irá:
 
 **Após a instalação:**
 1. Configure suas API keys no arquivo `.env.local`:
-   - `OPENAI_API_KEY="sk-..."` ou
-   - `GEMINI_API_KEY="..."`
+   - `OPENAI_API_KEY="sk-..."` ou `GEMINI_API_KEY="..."`
+   - `STRIPE_SECRET_KEY="sk_test_..."` (para pagamentos)
+   - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="pk_test_..."` (para checkout)
 
 2. Se o servidor não iniciou automaticamente:
    ```bash
@@ -211,10 +216,17 @@ OPENAI_API_KEY="sk-..."           # https://platform.openai.com/api-keys
 GEMINI_API_KEY="..."              # https://aistudio.google.com/apikey
 
 # ===========================================
+# PAGAMENTOS (Stripe)
+# ===========================================
+STRIPE_SECRET_KEY="sk_test_..."                    # Chave secreta do Stripe
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="pk_test_..."  # Chave publicável do Stripe
+STRIPE_WEBHOOK_SECRET="whsec_..."                  # Secret do webhook (obtido no Dashboard)
+
+# ===========================================
 # OPCIONAIS
 # ===========================================
 NODE_ENV="development"
-APP_URL="http://localhost:3000"
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
 RATE_LIMIT_REQUESTS_PER_MINUTE=30
 MAX_TOKENS_PER_REQUEST=4000
 ```
@@ -376,6 +388,9 @@ npm run test:e2e     # Executa testes E2E (Playwright)
 - [x] Exportação PDF/DOCX
 - [x] Sistema de templates
 - [x] Analytics básico
+- [x] Sistema de pagamentos (Stripe)
+- [x] Planos e assinaturas
+- [x] Painel administrativo
 
 ### 🚧 Fase 2: Crescimento (Em desenvolvimento)
 - [ ] 34 agentes completos (26 restantes)
@@ -430,6 +445,7 @@ Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](./LICENSE) para 
 - [Next.js](https://nextjs.org/) - Framework React
 - [Prisma](https://www.prisma.io/) - ORM moderno
 - [shadcn/ui](https://ui.shadcn.com/) - Componentes UI
+- [Stripe](https://stripe.com/) - Gateway de pagamentos
 - [OpenAI](https://openai.com/) - API de IA
 - [Google Gemini](https://ai.google.dev/) - API de IA alternativa
 

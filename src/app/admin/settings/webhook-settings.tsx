@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 interface WebhookSettingsProps {
   settings: {
     webhookUrl: string;
-    webhookToken: string;
+    webhookSecret: string;
   };
 }
 
@@ -35,7 +35,7 @@ export function WebhookSettings({ settings }: WebhookSettingsProps) {
     setTestResult(null);
 
     try {
-      const response = await fetch("/api/asaas/webhook/test", {
+      const response = await fetch("/api/stripe/webhook/test", {
         method: "POST",
       });
 
@@ -111,7 +111,7 @@ export function WebhookSettings({ settings }: WebhookSettingsProps) {
           </Button>
         </div>
         <p className="text-sm text-gray-500">
-          Configure esta URL no painel do Asaas em Integrações → Webhooks
+          Configure esta URL no painel do Stripe em Desenvolvedores → Webhooks
         </p>
       </div>
 
@@ -119,34 +119,34 @@ export function WebhookSettings({ settings }: WebhookSettingsProps) {
       <div className="space-y-2">
         <Label className="text-gray-300">Token de Autenticação</Label>
         <div className="flex items-center gap-3 p-4 rounded-xl bg-white/5 border border-white/10">
-          <div className={`w-3 h-3 rounded-full ${settings.webhookToken === "Configurado" ? "bg-green-400" : "bg-amber-400"}`} />
-          <span className="text-white">{settings.webhookToken}</span>
+          <div className={`w-3 h-3 rounded-full ${settings.webhookSecret === "Configurado" ? "bg-green-400" : "bg-amber-400"}`} />
+          <span className="text-white">{settings.webhookSecret}</span>
         </div>
         <p className="text-sm text-gray-500">
-          O token é usado para validar que as requisições vêm do Asaas. Configure a variável ASAAS_WEBHOOK_TOKEN.
+          O secret é usado para validar que as requisições vêm do Stripe. Configure a variável STRIPE_WEBHOOK_SECRET.
         </p>
       </div>
 
       {/* Instructions */}
       <div className="p-4 rounded-xl bg-neon-cyan/5 border border-neon-cyan/20">
-        <h4 className="font-medium text-neon-cyan mb-2">Como configurar no Asaas:</h4>
+        <h4 className="font-medium text-neon-cyan mb-2">Como configurar no Stripe:</h4>
         <ol className="text-sm text-gray-400 space-y-2 list-decimal list-inside">
-          <li>Acesse sua conta no Asaas</li>
-          <li>Vá em <strong className="text-white">Integrações → Webhooks</strong></li>
-          <li>Clique em <strong className="text-white">Adicionar Webhook</strong></li>
+          <li>Acesse sua conta no Stripe Dashboard</li>
+          <li>Vá em <strong className="text-white">Desenvolvedores → Webhooks</strong></li>
+          <li>Clique em <strong className="text-white">Adicionar endpoint</strong></li>
           <li>Cole a URL acima no campo de URL</li>
-          <li>Selecione os eventos que deseja receber</li>
-          <li>Opcionalmente, configure o token de autenticação</li>
+          <li>Selecione os eventos: <code className="text-xs bg-black/30 px-1 rounded">payment_intent.*</code>, <code className="text-xs bg-black/30 px-1 rounded">invoice.*</code>, <code className="text-xs bg-black/30 px-1 rounded">customer.subscription.*</code></li>
+          <li>Copie o <strong className="text-white">Signing secret</strong> e configure a variável STRIPE_WEBHOOK_SECRET</li>
           <li>Salve as configurações</li>
         </ol>
         <div className="mt-4">
           <a
-            href="https://docs.asaas.com/reference/webhooks"
+            href="https://docs.stripe.com/webhooks"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 text-sm text-neon-cyan hover:underline"
           >
-            Ver documentação do Asaas
+            Ver documentação do Stripe
             <ExternalLink className="h-3 w-3" />
           </a>
         </div>

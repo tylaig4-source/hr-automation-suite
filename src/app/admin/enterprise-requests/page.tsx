@@ -12,10 +12,21 @@ export const metadata = {
 export default async function EnterpriseRequestsPage() {
   const session = await getServerSession(authOptions);
 
-  if (!session || session.user?.role !== "ADMIN") {
+  if (!session) {
+    redirect("/login");
+  }
+
+  // Buscar role diretamente do banco de dados
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { role: true },
+  });
+
+  if (!user || user.role !== "ADMIN") {
     redirect("/dashboard");
   }
 
+  // Buscar todas as solicitações Enterprise do banco
   const requests = await prisma.enterpriseRequest.findMany({
     orderBy: { createdAt: "desc" },
     include: {

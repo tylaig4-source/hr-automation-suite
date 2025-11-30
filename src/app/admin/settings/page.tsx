@@ -1,5 +1,7 @@
 import { getServerSession } from "next-auth";
+import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { 
   Settings, 
   Webhook, 
@@ -20,14 +22,29 @@ export const metadata = {
 export default async function AdminSettingsPage() {
   const session = await getServerSession(authOptions);
 
+  if (!session) {
+    redirect("/login");
+  }
+
+  // Buscar role diretamente do banco de dados
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { role: true },
+  });
+
+  if (!user || user.role !== "ADMIN") {
+    redirect("/dashboard");
+  }
+
   // Get current settings from env (in production, these would come from database)
   const settings = {
-    asaasApiKey: process.env.ASAAS_API_KEY ? "••••••••" + process.env.ASAAS_API_KEY.slice(-4) : "",
-    asaasEnvironment: process.env.ASAAS_ENVIRONMENT || "sandbox",
+    stripeSecretKey: process.env.STRIPE_SECRET_KEY ? "••••••••" + process.env.STRIPE_SECRET_KEY.slice(-4) : "",
+    stripePublishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ? "••••••••" + process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY.slice(-4) : "",
+    stripeEnvironment: process.env.STRIPE_SECRET_KEY?.includes("sk_live") ? "production" : "test",
     webhookUrl: process.env.NEXT_PUBLIC_APP_URL 
-      ? `${process.env.NEXT_PUBLIC_APP_URL}/api/asaas/webhook`
-      : "https://seu-dominio.com/api/asaas/webhook",
-    webhookToken: process.env.ASAAS_WEBHOOK_TOKEN ? "Configurado" : "Não configurado",
+      ? `${process.env.NEXT_PUBLIC_APP_URL}/api/stripe/webhook`
+      : "https://seu-dominio.com/api/stripe/webhook",
+    webhookSecret: process.env.STRIPE_WEBHOOK_SECRET ? "Configurado" : "Não configurado",
   };
 
   return (
@@ -93,8 +110,8 @@ export default async function AdminSettingsPage() {
               </div>
               <div className="p-4 rounded-xl bg-white/5 border border-white/10">
                 <p className="text-sm text-gray-400 mb-1">Ambiente</p>
-                <p className={`font-medium ${settings.asaasEnvironment === "production" ? "text-green-400" : "text-amber-400"}`}>
-                  {settings.asaasEnvironment === "production" ? "Produção" : "Sandbox"}
+                <p className={`font-medium ${settings.stripeEnvironment === "production" ? "text-green-400" : "text-amber-400"}`}>
+                  {settings.stripeEnvironment === "production" ? "Produção" : "Teste"}
                 </p>
               </div>
               <div className="p-4 rounded-xl bg-white/5 border border-white/10">

@@ -1,3 +1,6 @@
+import { getServerSession } from "next-auth";
+import { redirect } from "next/navigation";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { 
@@ -65,6 +68,23 @@ export default async function AdminCompanyDetailPage({
 }: {
   params: { id: string };
 }) {
+  const session = await getServerSession(authOptions);
+
+  if (!session) {
+    redirect("/login");
+  }
+
+  // Buscar role diretamente do banco de dados
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { role: true },
+  });
+
+  if (!user || user.role !== "ADMIN") {
+    redirect("/dashboard");
+  }
+
+  // Buscar empresa diretamente do banco
   const company = await getCompany(params.id);
 
   if (!company) {

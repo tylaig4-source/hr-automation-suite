@@ -96,10 +96,14 @@ export function CheckoutModal({ isOpen, onClose, selectedPlan, onSuccess }: Chec
 
     setLoading(true);
     try {
-      const response = await fetch("/api/asaas/customers", {
+      const response = await fetch("/api/stripe/customers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(customerData),
+        body: JSON.stringify({
+          email: customerData.email,
+          name: customerData.name,
+          phone: customerData.phone,
+        }),
       });
 
       const data = await response.json();
@@ -155,10 +159,14 @@ export function CheckoutModal({ isOpen, onClose, selectedPlan, onSuccess }: Chec
         };
       }
 
-      const response = await fetch("/api/asaas/subscriptions", {
+      const response = await fetch("/api/stripe/subscriptions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify({
+          planId: plan.id,
+          billingCycle,
+          paymentMethodId: paymentMethod === "CREDIT_CARD" ? "card" : undefined,
+        }),
       });
 
       const data = await response.json();
@@ -509,7 +517,7 @@ export function CheckoutModal({ isOpen, onClose, selectedPlan, onSuccess }: Chec
 
               <p className="text-xs text-center text-muted-foreground flex items-center justify-center gap-1">
                 <Shield className="w-3 h-3" />
-                Pagamento seguro processado por Asaas
+                Pagamento seguro processado por Stripe
               </p>
             </div>
           )}
