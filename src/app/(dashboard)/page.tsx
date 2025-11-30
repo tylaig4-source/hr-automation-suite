@@ -17,6 +17,7 @@ import { prisma } from "@/lib/prisma";
 import { formatRelativeTime } from "@/lib/utils";
 import { categories, getAgentsByCategory } from "../../../prompts";
 import { Button } from "@/components/ui/button";
+import { OnboardingWrapper } from "@/components/dashboard/onboarding-wrapper";
 
 const quickAccess = [
   { name: "Criar Vaga", href: "/dashboard/agents/criador-descricao-vagas", category: "Recrutamento", color: "#00ffff" },
@@ -162,6 +163,12 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-8">
+      <OnboardingWrapper
+        companyInfo={{
+          isTrialing: companyInfo.isTrialing,
+          trialDaysLeft: companyInfo.trialDaysLeft,
+        }}
+      />
       {/* Trial Banner */}
       {companyInfo.isTrialing && (
         <div className={`rounded-2xl p-6 border ${

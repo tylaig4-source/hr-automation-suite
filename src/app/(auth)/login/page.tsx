@@ -4,6 +4,7 @@ import { useState, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
+import { getAbsoluteUrl } from "@/lib/url";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, Sparkles, Mail, Lock, AlertCircle, ArrowRight, Check, Bot } from "lucide-react";
@@ -42,8 +43,9 @@ function LoginForm() {
       if (result?.error) {
         setError(result.error);
       } else {
-        router.push(callbackUrl);
-        router.refresh();
+        // Usar URL absoluta para redirecionamento
+        const absoluteUrl = getAbsoluteUrl(callbackUrl);
+        window.location.href = absoluteUrl;
       }
     } catch {
       setError("Ocorreu um erro. Tente novamente.");
@@ -54,7 +56,7 @@ function LoginForm() {
 
   const handleGoogleSignIn = () => {
     setIsLoading(true);
-    signIn("google", { callbackUrl });
+    signIn("google", { callbackUrl: getAbsoluteUrl(callbackUrl) });
   };
 
   return (

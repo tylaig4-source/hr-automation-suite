@@ -82,17 +82,27 @@ export async function POST(
       session.user.companyId = newCompany.id;
     }
 
-    // Verificar créditos da empresa
-    const company = await prisma.company.findUnique({
-      where: { id: session.user.companyId! }, // Agora garantimos que existe
-      select: { credits: true }
+    // Verificar se usuário é ADMIN (acesso ilimitado)
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { role: true }
     });
 
-    if (!company || company.credits < 1) {
-      return NextResponse.json(
-        { error: "Créditos insuficientes. Faça um upgrade no seu plano." },
-        { status: 402 } // Payment Required
-      );
+    const isAdmin = user?.role === "ADMIN";
+
+    // Verificar créditos da empresa (admin tem acesso ilimitado)
+    if (!isAdmin) {
+      const company = await prisma.company.findUnique({
+        where: { id: session.user.companyId! }, // Agora garantimos que existe
+        select: { credits: true }
+      });
+
+      if (!company || company.credits < 1) {
+        return NextResponse.json(
+          { error: "Créditos insuficientes. Faça um upgrade no seu plano." },
+          { status: 402 } // Payment Required
+        );
+      }
     }
 
     // Validar campos obrigatórios
@@ -186,21 +196,29 @@ export async function POST(
       },
     });
 
-    // Atualizar contador do agente e deduzir crédito
-    await prisma.$transaction([
+    // Atualizar contador do agente e deduzir crédito (admin não deduz)
+    const updates: any[] = [
       prisma.agent.update({
         where: { id: dbAgent.id },
         data: {
           totalExecutions: { increment: 1 },
         },
       }),
-      prisma.company.update({
-        where: { id: session.user.companyId },
-        data: {
-          credits: { decrement: 1 },
-        },
-      }),
-    ]);
+    ];
+
+    // Só deduz créditos se não for admin
+    if (!isAdmin) {
+      updates.push(
+        prisma.company.update({
+          where: { id: session.user.companyId },
+          data: {
+            credits: { decrement: 1 },
+          },
+        })
+      );
+    }
+
+    await prisma.$transaction(updates);
 
     return NextResponse.json({
       id: execution.id,

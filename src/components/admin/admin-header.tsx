@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { signOut } from "next-auth/react";
+import { getAbsoluteUrl } from "@/lib/url";
 import Link from "next/link";
 
 interface AdminHeaderProps {
@@ -100,7 +101,7 @@ export function AdminHeader({ user }: AdminHeaderProps) {
               </DropdownMenuItem>
               <DropdownMenuSeparator className="bg-white/10" />
               <DropdownMenuItem
-                onClick={() => signOut({ callbackUrl: "/login" })}
+                onClick={() => signOut({ callbackUrl: getAbsoluteUrl("/login") })}
                 className="text-red-400 hover:text-red-300 hover:bg-red-500/10 cursor-pointer"
               >
                 Sair

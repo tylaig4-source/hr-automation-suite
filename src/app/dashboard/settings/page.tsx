@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useSession, signOut } from "next-auth/react";
+import { getAbsoluteUrl } from "@/lib/url";
 import {
   Settings,
   Bell,
@@ -71,7 +72,7 @@ export default function SettingsPage() {
       title: "Conta excluída",
       description: "Sua conta foi removida permanentemente.",
     });
-    signOut({ callbackUrl: "/" });
+    signOut({ callbackUrl: getAbsoluteUrl("/") });
   };
 
   return (
@@ -283,7 +284,7 @@ export default function SettingsPage() {
             </div>
             <Button
               variant="outline"
-              onClick={() => signOut({ callbackUrl: "/login" })}
+              onClick={() => signOut({ callbackUrl: getAbsoluteUrl("/login") })}
             >
               <LogOut className="h-4 w-4 mr-2" />
               Sair

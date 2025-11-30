@@ -29,6 +29,7 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { MobileSidebar } from "./mobile-sidebar";
 import { NotificationBell } from "@/components/notifications/notification-bell";
+import { getAbsoluteUrl } from "@/lib/url";
 
 interface HeaderProps {
   user: {
@@ -207,7 +208,7 @@ export function Header({ user }: HeaderProps) {
             <DropdownMenuSeparator />
             <DropdownMenuItem
               className="text-red-600 cursor-pointer"
-              onClick={() => signOut({ callbackUrl: "/login" })}
+              onClick={() => signOut({ callbackUrl: getAbsoluteUrl("/login") })}
             >
               <LogOut className="mr-2 h-4 w-4" />
               Sair
