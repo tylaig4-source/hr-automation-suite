@@ -34,11 +34,14 @@ export interface AICompletionResult {
 
 const PROVIDER_CONFIG = {
   openai: {
+    // Modelo pode ser configurado via OPENAI_MODEL no .env
+    // Exemplos: gpt-4-turbo-preview, gpt-4, gpt-3.5-turbo
     defaultModel: process.env.OPENAI_MODEL || "gpt-4-turbo-preview",
     maxTokens: 4000,
   },
   gemini: {
-    // Modelos disponíveis: gemini-pro, gemini-1.5-pro, gemini-1.5-flash, gemini-2.0-flash-exp
+    // Modelo pode ser configurado via GEMINI_MODEL no .env
+    // Modelos disponíveis: gemini-pro, gemini-1.5-pro, gemini-1.5-flash, gemini-2.0-flash-exp, gemini-3-pro-preview
     defaultModel: process.env.GEMINI_MODEL || "gemini-1.5-flash",
     maxTokens: 8000,
   },
