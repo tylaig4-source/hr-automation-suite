@@ -4,7 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import { signOut } from "next-auth/react";
 import {
-  Bell,
   Menu,
   Moon,
   Sun,
@@ -14,6 +13,8 @@ import {
   ChevronDown,
   Sparkles,
   BarChart3,
+  CreditCard,
+  Shield,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
@@ -28,13 +29,13 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { MobileSidebar } from "./mobile-sidebar";
 import { NotificationBell } from "@/components/notifications/notification-bell";
-import { cn } from "@/lib/utils";
 
 interface HeaderProps {
   user: {
     name: string | null;
     email: string;
     image: string | null;
+    role?: string;
   };
 }
 
@@ -50,6 +51,8 @@ export function Header({ user }: HeaderProps) {
       .toUpperCase()
       .slice(0, 2)
     : user.email[0].toUpperCase();
+
+  const isAdmin = user.role === "ADMIN";
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-6">
@@ -79,6 +82,20 @@ export function Header({ user }: HeaderProps) {
 
       {/* Actions */}
       <div className="flex items-center gap-2">
+        {/* Admin Link */}
+        {isAdmin && (
+          <Link href="/admin">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="text-purple-600 dark:text-purple-400 border-purple-200 dark:border-purple-500/30 hover:bg-purple-50 dark:hover:bg-purple-500/10"
+            >
+              <Shield className="h-4 w-4 mr-2" />
+              Admin
+            </Button>
+          </Link>
+        )}
+
         {/* Theme toggle */}
         <Button
           variant="ghost"
@@ -135,6 +152,12 @@ export function Header({ user }: HeaderProps) {
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
+              <Link href="/dashboard/plans" className="cursor-pointer">
+                <CreditCard className="mr-2 h-4 w-4" />
+                Planos
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
               <Link href="/dashboard/settings" className="cursor-pointer">
                 <Settings className="mr-2 h-4 w-4" />
                 Configurações
@@ -154,4 +177,3 @@ export function Header({ user }: HeaderProps) {
     </header>
   );
 }
-

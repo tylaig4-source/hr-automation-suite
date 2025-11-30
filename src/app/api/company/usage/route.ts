@@ -22,14 +22,23 @@ export async function GET(request: NextRequest) {
             if (user?.companyId) {
                 companyId = user.companyId;
             } else {
-                // Se realmente não tiver, cria uma
+                // Se realmente não tiver, cria uma com trial
                 const defaultSlug = session.user.email.split("@")[0] + "-" + Date.now().toString(36);
+                const trialStartDate = new Date();
+                const trialEndDate = new Date();
+                trialEndDate.setDate(trialEndDate.getDate() + 3);
 
                 const newCompany = await prisma.company.create({
                     data: {
                         name: "Minha Empresa",
                         slug: defaultSlug,
-                        credits: 50,
+                        plan: "TRIAL",
+                        credits: 10,
+                        maxUsers: 1,
+                        maxExecutions: 10,
+                        isTrialing: true,
+                        trialStartDate,
+                        trialEndDate,
                         users: {
                             connect: { id: session.user.id }
                         }
@@ -45,6 +54,9 @@ export async function GET(request: NextRequest) {
                 plan: true,
                 credits: true,
                 maxExecutions: true,
+                maxUsers: true,
+                isTrialing: true,
+                trialEndDate: true,
             },
         });
 
@@ -56,24 +68,51 @@ export async function GET(request: NextRequest) {
         const now = new Date();
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-        const usedExecutions = await prisma.execution.count({
-            where: {
-                companyId: companyId,
-                createdAt: { gte: startOfMonth }
-            }
-        });
+        const [usedExecutions, usedUsers] = await Promise.all([
+            prisma.execution.count({
+                where: {
+                    companyId: companyId,
+                    createdAt: { gte: startOfMonth }
+                }
+            }),
+            prisma.user.count({
+                where: {
+                    companyId: companyId
+                }
+            })
+        ]);
 
         // Se o plano for ENTERPRISE (ilimitado), credits pode ser irrelevante ou alto
         const isUnlimited = company.plan === "ENTERPRISE";
-        const percentage = isUnlimited ? 100 : Math.min(100, (usedExecutions / company.maxExecutions) * 100);
+        const executionsPercentage = isUnlimited ? 0 : Math.min(100, (usedExecutions / company.maxExecutions) * 100);
+        const usersPercentage = isUnlimited ? 0 : Math.min(100, (usedUsers / company.maxUsers) * 100);
+
+        // Calcular dias restantes do trial
+        let trialDaysLeft = 0;
+        let trialExpired = false;
+        if (company.isTrialing && company.trialEndDate) {
+            const endDate = new Date(company.trialEndDate);
+            const diffTime = endDate.getTime() - now.getTime();
+            trialDaysLeft = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+            trialExpired = diffTime <= 0;
+        }
 
         return NextResponse.json({
             plan: company.plan,
             credits: company.credits,
             maxExecutions: company.maxExecutions,
             usedExecutions,
-            percentage,
+            executionsPercentage,
+            maxUsers: company.maxUsers,
+            usedUsers,
+            usersPercentage,
+            percentage: executionsPercentage, // Mantido para compatibilidade
             isUnlimited,
+            // Trial info
+            isTrialing: company.isTrialing,
+            trialEndDate: company.trialEndDate,
+            trialDaysLeft,
+            trialExpired,
         });
     } catch (error) {
         console.error("Erro ao buscar uso:", error);

@@ -15,8 +15,12 @@ import {
   History,
   Bookmark,
   Sparkles,
+  CreditCard,
+  Settings,
+  Shield,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useSession } from "next-auth/react";
 
 const categories = [
   { name: "Recrutamento", slug: "recrutamento-selecao", icon: Users, color: "#6366F1" },
@@ -35,9 +39,11 @@ interface MobileSidebarProps {
 
 export function MobileSidebar({ onClose }: MobileSidebarProps) {
   const pathname = usePathname();
+  const { data: session } = useSession();
+  const isAdmin = session?.user?.role === "ADMIN";
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col bg-background">
       {/* Logo */}
       <div className="flex h-16 items-center gap-2 border-b px-6">
         <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
@@ -93,6 +99,20 @@ export function MobileSidebar({ onClose }: MobileSidebarProps) {
         <div className="border-t my-4" />
 
         <Link
+          href="/dashboard/analytics"
+          onClick={onClose}
+          className={cn(
+            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+            pathname === "/dashboard/analytics"
+              ? "bg-primary text-primary-foreground"
+              : "text-muted-foreground hover:bg-accent"
+          )}
+        >
+          <BarChart3 className="h-4 w-4" />
+          Analytics
+        </Link>
+
+        <Link
           href="/dashboard/history"
           onClick={onClose}
           className={cn(
@@ -119,8 +139,67 @@ export function MobileSidebar({ onClose }: MobileSidebarProps) {
           <Bookmark className="h-4 w-4" />
           Templates
         </Link>
+
+        <div className="border-t my-4" />
+
+        {/* Admin Panel - Only for admins */}
+        {isAdmin && (
+          <Link
+            href="/admin"
+            onClick={onClose}
+            className={cn(
+              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+              pathname.startsWith("/admin")
+                ? "bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30"
+                : "text-muted-foreground hover:bg-accent"
+            )}
+          >
+            <Shield className={cn(
+              "h-4 w-4",
+              pathname.startsWith("/admin") && "text-amber-600 dark:text-amber-400"
+            )} />
+            Painel Admin
+          </Link>
+        )}
+
+        <Link
+          href="/dashboard/plans"
+          onClick={onClose}
+          className={cn(
+            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+            pathname === "/dashboard/plans"
+              ? "bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400"
+              : "text-muted-foreground hover:bg-accent"
+          )}
+        >
+          <CreditCard className={cn("h-4 w-4", pathname === "/dashboard/plans" && "text-green-600 dark:text-green-400")} />
+          Planos
+        </Link>
+
+        <Link
+          href="/dashboard/profile"
+          onClick={onClose}
+          className={cn(
+            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+            pathname === "/dashboard/profile"
+              ? "bg-primary text-primary-foreground"
+              : "text-muted-foreground hover:bg-accent"
+          )}
+        >
+          <Settings className="h-4 w-4" />
+          Configurações
+        </Link>
       </nav>
+
+      {/* Footer */}
+      <div className="border-t p-4">
+        <p className="text-center text-xs text-muted-foreground">
+          Feito com ❤️ por{" "}
+          <a href="https://meusuper.app/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+            Meu Super App
+          </a>
+        </p>
+      </div>
     </div>
   );
 }
-

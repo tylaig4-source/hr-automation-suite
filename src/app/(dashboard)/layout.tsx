@@ -19,17 +19,22 @@ export default async function DashboardLayout({
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-[#0a0a0f]">
+        {/* Background Effects */}
+        <div className="fixed inset-0 z-0">
+          <div className="absolute inset-0 bg-mesh-gradient opacity-30" />
+          <div className="absolute inset-0 bg-grid-pattern opacity-50" />
+        </div>
+        
         {/* Sidebar */}
         <Sidebar />
 
         {/* Main content */}
         <DashboardShell>
           <Header user={session.user} />
-          <main className="p-6">{children}</main>
+          <main className="p-6 relative z-10">{children}</main>
         </DashboardShell>
       </div>
     </SidebarProvider>
   );
 }
-
