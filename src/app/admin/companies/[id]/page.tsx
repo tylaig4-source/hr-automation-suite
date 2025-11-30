@@ -96,6 +96,7 @@ export default async function AdminCompanyDetailPage({
   }
 
   const planColors = {
+    TRIAL: { bg: "bg-amber-500/20", text: "text-amber-400", border: "border-amber-500/30" },
     STARTER: { bg: "bg-neon-cyan/20", text: "text-neon-cyan", border: "border-neon-cyan/30" },
     PROFESSIONAL: { bg: "bg-neon-magenta/20", text: "text-neon-magenta", border: "border-neon-magenta/30" },
     ENTERPRISE: { bg: "bg-neon-purple/20", text: "text-neon-purple", border: "border-neon-purple/30" },
@@ -110,7 +111,7 @@ export default async function AdminCompanyDetailPage({
     EMPLOYEE: "text-gray-400",
   };
 
-  const colors = planColors[company.plan as keyof typeof planColors];
+  const colors = planColors[company.plan as keyof typeof planColors] || planColors.PROFESSIONAL;
 
   return (
     <div className="space-y-6">
