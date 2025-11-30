@@ -41,10 +41,13 @@ async function getCompanies(searchParams: SearchParams) {
   const where: any = {};
 
   if (searchParams.q) {
-    where.OR = [
-      { name: { contains: searchParams.q, mode: "insensitive" } },
-      { slug: { contains: searchParams.q, mode: "insensitive" } },
-    ];
+    const searchTerm = searchParams.q.trim();
+    if (searchTerm) {
+      where.OR = [
+        { name: { contains: searchTerm, mode: "insensitive" } },
+        { slug: { contains: searchTerm, mode: "insensitive" } },
+      ];
+    }
   }
 
   if (searchParams.plan && searchParams.plan !== "all") {
@@ -78,7 +81,7 @@ async function getCompanies(searchParams: SearchParams) {
 export default async function AdminCompaniesPage({
   searchParams,
 }: {
-  searchParams: SearchParams;
+  searchParams: Promise<SearchParams> | SearchParams;
 }) {
   const session = await getServerSession(authOptions);
 
@@ -96,10 +99,14 @@ export default async function AdminCompaniesPage({
     redirect("/dashboard");
   }
 
+  // Resolver searchParams (pode ser Promise no Next.js 14+)
+  const resolvedSearchParams = await Promise.resolve(searchParams);
+
   // Buscar todas as empresas diretamente do banco
-  const { companies, total, page, totalPages } = await getCompanies(searchParams);
+  const { companies, total, page, totalPages } = await getCompanies(resolvedSearchParams);
 
   const planColors = {
+    TRIAL: { bg: "bg-amber-500/20", text: "text-amber-400", border: "border-amber-500/30" },
     STARTER: { bg: "bg-neon-cyan/20", text: "text-neon-cyan", border: "border-neon-cyan/30" },
     PROFESSIONAL: { bg: "bg-neon-magenta/20", text: "text-neon-magenta", border: "border-neon-magenta/30" },
     ENTERPRISE: { bg: "bg-neon-purple/20", text: "text-neon-purple", border: "border-neon-purple/30" },
@@ -129,13 +136,13 @@ export default async function AdminCompaniesPage({
             <Input
               name="q"
               placeholder="Buscar por nome ou slug..."
-              defaultValue={searchParams.q}
+              defaultValue={resolvedSearchParams.q}
               className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-gray-500"
             />
           </div>
           <select
             name="plan"
-            defaultValue={searchParams.plan || "all"}
+            defaultValue={resolvedSearchParams.plan || "all"}
             className="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-neon-cyan/50"
           >
             <option value="all" className="bg-gray-900">Todos os planos</option>
@@ -283,7 +290,7 @@ export default async function AdminCompaniesPage({
                 asChild
                 className="border-white/10 text-white hover:bg-white/10"
               >
-                <Link href={`/admin/companies?page=${page - 1}&q=${searchParams.q || ""}&plan=${searchParams.plan || ""}`}>
+                <Link href={`/admin/companies?page=${page - 1}&q=${resolvedSearchParams.q || ""}&plan=${resolvedSearchParams.plan || ""}`}>
                   <ChevronLeft className="h-4 w-4" />
                 </Link>
               </Button>
@@ -297,7 +304,7 @@ export default async function AdminCompaniesPage({
                 asChild
                 className="border-white/10 text-white hover:bg-white/10"
               >
-                <Link href={`/admin/companies?page=${page + 1}&q=${searchParams.q || ""}&plan=${searchParams.plan || ""}`}>
+                <Link href={`/admin/companies?page=${page + 1}&q=${resolvedSearchParams.q || ""}&plan=${resolvedSearchParams.plan || ""}`}>
                   <ChevronRight className="h-4 w-4" />
                 </Link>
               </Button>
