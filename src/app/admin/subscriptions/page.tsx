@@ -41,6 +41,21 @@ export default async function AdminSubscriptionsPage() {
     take: 100, // Limitar a 100 mais recentes
   });
 
+  // Mapear para o formato esperado pelo cliente
+  const formattedSubscriptions = subscriptions.map((sub) => ({
+    id: sub.id,
+    companyId: sub.companyId,
+    stripeSubscriptionId: sub.stripeSubscriptionId,
+    status: sub.status,
+    planId: sub.planId,
+    billingType: sub.billingType,
+    nextDueDate: sub.nextDueDate,
+    endDate: sub.endDate,
+    createdAt: sub.createdAt,
+    updatedAt: sub.updatedAt,
+    company: sub.company,
+  }));
+
   // Estatísticas
   const stats = await Promise.all([
     prisma.subscription.count(),
@@ -66,7 +81,7 @@ export default async function AdminSubscriptionsPage() {
 
   return (
     <SubscriptionsClient
-      subscriptions={subscriptions}
+      subscriptions={formattedSubscriptions}
       stats={{
         total: totalSubscriptions,
         active: activeSubscriptions,
