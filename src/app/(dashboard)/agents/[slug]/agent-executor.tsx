@@ -346,5 +346,6 @@ export function AgentExecutor({ agent, category }: AgentExecutorProps) {
                     </div>
                 </div>
             </div>
-            );
+        </div>
+    );
 }
