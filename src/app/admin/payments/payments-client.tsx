@@ -33,7 +33,7 @@ interface Payment {
   id: string;
   companyId: string;
   value: number;
-  netValue: number;
+  netValue: number | null;
   billingType: string;
   status: string;
   dueDate: Date;
@@ -236,7 +236,7 @@ export function PaymentsClient({ payments: initialPayments, stats }: PaymentsCli
                             <p className="font-semibold">
                               R$ {payment.value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                             </p>
-                            {payment.netValue !== payment.value && (
+                            {payment.netValue && payment.netValue !== payment.value && (
                               <p className="text-xs text-muted-foreground">
                                 Líquido: R$ {payment.netValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                               </p>
@@ -336,7 +336,7 @@ export function PaymentsClient({ payments: initialPayments, stats }: PaymentsCli
                     <p className="text-2xl font-bold">
                       R$ {selectedPayment.value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                     </p>
-                    {selectedPayment.netValue !== selectedPayment.value && (
+                    {selectedPayment.netValue && selectedPayment.netValue !== selectedPayment.value && (
                       <p className="text-sm text-muted-foreground mt-1">
                         Líquido: R$ {selectedPayment.netValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                       </p>

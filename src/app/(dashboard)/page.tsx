@@ -15,7 +15,7 @@ import * as LucideIcons from "lucide-react";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { formatRelativeTime } from "@/lib/utils";
-import { categories } from "../../../prompts";
+import { categories, getAgentsByCategory } from "../../../prompts";
 import { Button } from "@/components/ui/button";
 
 const quickAccess = [
@@ -314,6 +314,7 @@ export default async function DashboardPage() {
           {categories.slice(0, 8).map((category) => {
             // @ts-ignore
             const Icon = LucideIcons[category.icon || "Circle"] || LucideIcons.Circle;
+            const agentsCount = getAgentsByCategory(category.id).length;
             return (
               <Link key={category.slug} href={`/dashboard/categories/${category.slug}`}>
                 <div className="glass rounded-xl p-4 border border-white/10 hover:border-white/20 transition-all cursor-pointer group">
@@ -332,7 +333,7 @@ export default async function DashboardPage() {
                         {category.name}
                       </p>
                       <p className="text-xs text-gray-500">
-                        {category.agents?.length || 0} agentes
+                        {agentsCount} agentes
                       </p>
                     </div>
                   </div>

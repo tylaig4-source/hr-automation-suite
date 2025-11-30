@@ -136,7 +136,7 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
       stripeChargeId: charge?.id || null,
       value: paymentIntent.amount / 100, // Converter de centavos
       netValue: charge ? (charge.amount - (charge.application_fee_amount || 0)) / 100 : paymentIntent.amount / 100,
-      billingType: paymentIntent.payment_method_types[0]?.toUpperCase() || "CREDIT_CARD",
+      billingType: (paymentIntent.payment_method_types[0]?.toUpperCase() || "CREDIT_CARD") as any,
       status: "RECEIVED",
       dueDate: new Date(paymentIntent.created * 1000),
       paymentDate: new Date(),
@@ -172,16 +172,17 @@ async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
 async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
   console.log(`[Stripe Webhook] Invoice payment succeeded: ${invoice.id}`);
 
-  if (invoice.subscription) {
-    const subscription = typeof invoice.subscription === "string"
-      ? await stripe.subscriptions.retrieve(invoice.subscription)
-      : invoice.subscription;
+  const subscriptionId = (invoice as any).subscription;
+  if (subscriptionId) {
+    const subscription = typeof subscriptionId === "string"
+      ? await stripe.subscriptions.retrieve(subscriptionId)
+      : subscriptionId;
 
     await prisma.subscription.updateMany({
       where: { stripeSubscriptionId: subscription.id },
       data: {
         status: "ACTIVE",
-        nextDueDate: new Date(subscription.current_period_end * 1000),
+        nextDueDate: new Date((subscription as any).current_period_end * 1000),
       },
     });
   }
@@ -190,12 +191,13 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
 async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
   console.log(`[Stripe Webhook] Invoice payment failed: ${invoice.id}`);
 
-  if (invoice.subscription) {
+  const subscriptionId = (invoice as any).subscription;
+  if (subscriptionId) {
     await prisma.subscription.updateMany({
       where: {
-        stripeSubscriptionId: typeof invoice.subscription === "string"
-          ? invoice.subscription
-          : invoice.subscription.id,
+        stripeSubscriptionId: typeof subscriptionId === "string"
+          ? subscriptionId
+          : subscriptionId.id,
       },
       data: {
         status: "OVERDUE",
@@ -210,13 +212,13 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
   const companyId = subscription.metadata?.companyId;
   if (!companyId) return;
 
-  await prisma.subscription.updateMany({
-    where: { stripeSubscriptionId: subscription.id },
-    data: {
-      status: subscription.status === "active" ? "ACTIVE" : "PENDING",
-      nextDueDate: new Date(subscription.current_period_end * 1000),
-    },
-  });
+    await prisma.subscription.updateMany({
+      where: { stripeSubscriptionId: subscription.id },
+      data: {
+        status: subscription.status === "active" ? "ACTIVE" : "PENDING",
+        nextDueDate: new Date((subscription as any).current_period_end * 1000),
+      },
+    });
 }
 
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
