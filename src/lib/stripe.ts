@@ -213,6 +213,7 @@ export async function createSubscription(data: {
   priceId: string;
   paymentMethodId?: string;
   metadata?: Record<string, string>;
+  trialPeriodDays?: number; // Período de trial em dias (ex: 7 dias)
 }): Promise<Stripe.Subscription> {
   const subscriptionData: Stripe.SubscriptionCreateParams = {
     customer: data.customerId,
@@ -224,6 +225,11 @@ export async function createSubscription(data: {
   // Se tiver método de pagamento, usar para pagamento automático
   if (data.paymentMethodId) {
     subscriptionData.default_payment_method = data.paymentMethodId;
+  }
+
+  // Se tiver período de trial, adicionar
+  if (data.trialPeriodDays && data.trialPeriodDays > 0) {
+    subscriptionData.trial_period_days = data.trialPeriodDays;
   }
 
   const stripe = await getStripeInstance();
@@ -289,6 +295,114 @@ export async function cancelSubscription(
 // ============================================
 // Payment Methods
 // ============================================
+
+/**
+ * Cria um PaymentMethod com os dados do cartão
+ */
+export async function createPaymentMethod(data: {
+  card: {
+    number: string;
+    exp_month: number;
+    exp_year: number;
+    cvc: string;
+  };
+  billing_details?: {
+    name?: string;
+    email?: string;
+    phone?: string;
+    address?: {
+      line1?: string;
+      line2?: string;
+      city?: string;
+      state?: string;
+      postal_code?: string;
+      country?: string;
+    };
+  };
+}): Promise<Stripe.PaymentMethod> {
+  const stripe = await getStripeInstance();
+  return await stripe.paymentMethods.create({
+    type: "card",
+    card: {
+      number: data.card.number.replace(/\s/g, ""), // Remove espaços
+      exp_month: data.card.exp_month,
+      exp_year: data.card.exp_year,
+      cvc: data.card.cvc,
+    },
+    billing_details: data.billing_details,
+  });
+}
+
+/**
+ * Anexa um PaymentMethod a um Customer
+ */
+export async function attachPaymentMethodToCustomer(
+  paymentMethodId: string,
+  customerId: string
+): Promise<Stripe.PaymentMethod> {
+  const stripe = await getStripeInstance();
+  return await stripe.paymentMethods.attach(paymentMethodId, {
+    customer: customerId,
+  });
+}
+
+/**
+ * Define um PaymentMethod como padrão para um Customer
+ */
+export async function setDefaultPaymentMethod(
+  customerId: string,
+  paymentMethodId: string
+): Promise<Stripe.Customer> {
+  const stripe = await getStripeInstance();
+  return await stripe.customers.update(customerId, {
+    invoice_settings: {
+      default_payment_method: paymentMethodId,
+    },
+  });
+}
+
+/**
+ * Cria e anexa um PaymentMethod a um Customer em uma única operação
+ */
+export async function createAndAttachPaymentMethod(data: {
+  customerId: string;
+  card: {
+    number: string;
+    exp_month: number;
+    exp_year: number;
+    cvc: string;
+  };
+  billing_details?: {
+    name?: string;
+    email?: string;
+    phone?: string;
+    address?: {
+      line1?: string;
+      line2?: string;
+      city?: string;
+      state?: string;
+      postal_code?: string;
+      country?: string;
+    };
+  };
+  setAsDefault?: boolean;
+}): Promise<Stripe.PaymentMethod> {
+  // Criar PaymentMethod
+  const paymentMethod = await createPaymentMethod({
+    card: data.card,
+    billing_details: data.billing_details,
+  });
+
+  // Anexar ao Customer
+  await attachPaymentMethodToCustomer(paymentMethod.id, data.customerId);
+
+  // Definir como padrão se solicitado
+  if (data.setAsDefault) {
+    await setDefaultPaymentMethod(data.customerId, paymentMethod.id);
+  }
+
+  return paymentMethod;
+}
 
 export async function createPaymentIntent(data: {
   amount: number;

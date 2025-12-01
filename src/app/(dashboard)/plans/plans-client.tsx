@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import React from "react";
 import { Check, Zap, Shield, Building2, CreditCard, Users, Activity, Calendar, ArrowRight, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CheckoutModal } from "@/components/checkout/checkout-modal";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -67,8 +67,32 @@ const statusLabels: Record<string, { label: string; color: string }> = {
 
 export function PlansClient({ company, plans: dbPlans }: PlansClientProps) {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const [checkoutOpen, setCheckoutOpen] = useState(false);
     const [selectedPlan, setSelectedPlan] = useState<PlanForCheckout | null>(null);
+    const [highlightedPlanId, setHighlightedPlanId] = useState<string | null>(null);
+    const [preferredCycle, setPreferredCycle] = useState<"MONTHLY" | "YEARLY">("MONTHLY");
+
+    // Verificar query params para upgrade
+    useEffect(() => {
+        const upgradePlanId = searchParams.get("upgrade");
+        const cycle = searchParams.get("cycle");
+        
+        if (upgradePlanId) {
+            setHighlightedPlanId(upgradePlanId);
+            if (cycle === "YEARLY") {
+                setPreferredCycle("YEARLY");
+            }
+            
+            // Scroll para o plano destacado após um breve delay
+            setTimeout(() => {
+                const element = document.getElementById(`plan-${upgradePlanId}`);
+                if (element) {
+                    element.scrollIntoView({ behavior: "smooth", block: "center" });
+                }
+            }, 300);
+        }
+    }, [searchParams]);
 
     // Converter planos do banco para formato esperado
     const plans = dbPlans.map((plan) => {
@@ -201,12 +225,17 @@ export function PlansClient({ company, plans: dbPlans }: PlansClientProps) {
 
                     return (
                         <div
+                            id={`plan-${plan.id}`}
                             key={plan.id}
                             className={`relative glass rounded-2xl p-6 border transition-all hover:scale-[1.02] ${
-                                plan.popular 
-                                    ? "border-neon-magenta/50 bg-neon-magenta/5" 
-                                    : "border-white/10 hover:border-white/20"
-                            } ${isCurrent ? "ring-2 ring-green-500" : ""}`}
+                                isCurrent
+                                    ? "ring-2 ring-green-500 border-green-500/30"
+                                    : highlightedPlanId === plan.id
+                                        ? "border-amber-500/70 bg-gradient-to-br from-amber-500/20 to-yellow-500/10 ring-2 ring-amber-500/50"
+                                        : plan.popular 
+                                            ? "border-neon-magenta/50 bg-neon-magenta/5" 
+                                            : "border-white/10 hover:border-white/20"
+                            }`}
                         >
                             {plan.popular && (
                                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-sm font-bold bg-gradient-to-r from-neon-cyan to-neon-magenta text-black">
@@ -227,8 +256,15 @@ export function PlansClient({ company, plans: dbPlans }: PlansClientProps) {
                                 >
                                     <Icon className="w-6 h-6" style={{ color: plan.color }} />
                                 </div>
-                                <div>
-                                    <h3 className="text-xl font-bold text-white">{plan.name}</h3>
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-2">
+                                        <h3 className="text-xl font-bold text-white">{plan.name}</h3>
+                                        {highlightedPlanId === plan.id && preferredCycle === "YEARLY" && (
+                                            <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30">
+                                                Recomendado
+                                            </Badge>
+                                        )}
+                                    </div>
                                     <p className="text-sm text-gray-400">{plan.description}</p>
                                 </div>
                             </div>
@@ -454,6 +490,7 @@ export function PlansClient({ company, plans: dbPlans }: PlansClientProps) {
                 onClose={() => setCheckoutOpen(false)}
                 selectedPlan={selectedPlan}
                 onSuccess={handleCheckoutSuccess}
+                defaultBillingCycle={preferredCycle}
             />
         </div>
     );

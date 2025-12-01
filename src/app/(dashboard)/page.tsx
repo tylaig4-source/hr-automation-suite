@@ -21,6 +21,7 @@ import { OnboardingWrapper } from "@/components/dashboard/onboarding-wrapper";
 import { TrialUpgradeAlert } from "@/components/dashboard/trial-upgrade-alert";
 import { PlanSelectionWrapper } from "@/components/dashboard/plan-selection-wrapper";
 import { PaymentAlert } from "@/components/dashboard/payment-alert";
+import { UpgradeSuggestionAlert } from "@/components/dashboard/upgrade-suggestion-alert";
 import { getTrialSettings } from "@/lib/trial-settings";
 
 const quickAccess = [
@@ -216,6 +217,11 @@ export default async function DashboardPage() {
           subscriptionStatus={companyInfo.subscriptionStatus}
           nextDueDate={companyInfo.subscriptionNextDueDate}
         />
+      )}
+
+      {/* Upgrade Suggestion Alert - sugerir upgrade para anual após 1 mês no mensal */}
+      {companyInfo.hasActivePlan && !companyInfo.isTrialing && companyInfo.subscriptionStatus === "ACTIVE" && (
+        <UpgradeSuggestionAlert />
       )}
 
       {/* Trial Upgrade Alert - apenas se tiver plano ativo */}
