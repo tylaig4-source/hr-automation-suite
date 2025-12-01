@@ -94,12 +94,32 @@ export async function canExecuteAgents(companyId: string): Promise<{ allowed: bo
 
   // Se não está em trial, verificar assinatura
   if (company.subscription) {
-    if (company.subscription.status === "ACTIVE") {
+    const subStatus = company.subscription.status;
+    
+    // Apenas ACTIVE permite execução
+    if (subStatus === "ACTIVE") {
       return { allowed: true };
     }
+    
+    // Bloquear para todos os outros status
+    if (subStatus === "OVERDUE") {
+      return {
+        allowed: false,
+        reason: "Pagamento em atraso. Atualize seu método de pagamento para continuar usando os agentes.",
+      };
+    }
+    
+    if (subStatus === "EXPIRED" || subStatus === "CANCELED") {
+      return {
+        allowed: false,
+        reason: "Assinatura cancelada ou expirada. Renove sua assinatura para continuar usando os agentes.",
+      };
+    }
+    
+    // PENDING também bloqueia (aguardando primeiro pagamento)
     return {
       allowed: false,
-      reason: "Assinatura inativa. Renove sua assinatura para continuar usando os agentes.",
+      reason: "Assinatura pendente. Complete o pagamento para continuar usando os agentes.",
     };
   }
 
