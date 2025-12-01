@@ -57,15 +57,33 @@ export default async function DashboardPage() {
     subscriptionNextDueDate: null as Date | null,
   };
 
-  if (companyId) {
+  // Se não tem companyId na sessão, buscar do banco pelo userId
+  let finalCompanyId = companyId;
+  if (!finalCompanyId && userId) {
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { companyId: true },
+      });
+      if (user?.companyId) {
+        finalCompanyId = user.companyId;
+      }
+    } catch (error) {
+      console.error("Erro ao buscar companyId do usuário:", error);
+    }
+  }
+
+  if (finalCompanyId) {
     try {
       const company = await prisma.company.findUnique({
-        where: { id: companyId },
+        where: { id: finalCompanyId },
         select: {
           plan: true,
           isTrialing: true,
           trialEndDate: true,
           credits: true,
+          maxUsers: true,
+          maxExecutions: true,
           subscription: {
             select: { 
               status: true,
@@ -85,7 +103,15 @@ export default async function DashboardPage() {
         // Verificar se tem plano ativo (trial ativo OU assinatura ativa)
         const hasActiveTrial = company.isTrialing && company.trialEndDate && new Date(company.trialEndDate) > new Date();
         const hasActiveSubscription = company.subscription?.status === "ACTIVE";
-        companyInfo.hasActivePlan = hasActiveTrial || hasActiveSubscription;
+        
+        // Também verificar se tem limites configurados (indica que tem plano)
+        const hasConfiguredLimits = Boolean(
+          (company.maxUsers && company.maxUsers > 0) || 
+          (company.maxExecutions && company.maxExecutions > 0) ||
+          (company.credits && company.credits > 0)
+        );
+        
+        companyInfo.hasActivePlan = hasActiveTrial || hasActiveSubscription || hasConfiguredLimits;
         
         if (company.isTrialing && company.trialEndDate) {
           const now = new Date();
@@ -194,11 +220,16 @@ export default async function DashboardPage() {
     orderBy: { orderIndex: "asc" },
   });
 
+  // Determinar se deve mostrar o modal de seleção de plano
+  // Mostrar se:
+  // 1. Não tem companyId (nem na sessão nem no banco), OU
+  // 2. Tem companyId mas não tem plano ativo (sem trial ativo, sem subscription ativa, sem limites configurados)
+  const shouldShowPlanSelection = !finalCompanyId || !companyInfo.hasActivePlan;
+
   return (
     <div className="space-y-8">
       {/* Modal de Seleção de Plano - Mostrar se não tem plano ativo */}
-      {/* Verificar: sem companyId OU sem plano ativo */}
-      {(!companyId || !companyInfo.hasActivePlan) && (
+      {shouldShowPlanSelection && (
         <PlanSelectionWrapper plans={plans} />
       )}
 
