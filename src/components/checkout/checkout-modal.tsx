@@ -34,22 +34,6 @@ type Step = "customer" | "payment" | "processing" | "success";
 type BillingCycle = "MONTHLY" | "YEARLY";
 type PaymentMethod = "PIX" | "BOLETO" | "CREDIT_CARD";
 
-const PLAN_DATA: Plan[] = [
-  {
-    id: "PROFESSIONAL",
-    name: "Professional",
-    monthlyPrice: 597,
-    yearlyPrice: 497,
-    totalYearly: 5964,
-    features: [
-      "Até 5 usuários",
-      "500 requisições/mês",
-      "Todos os 34 agentes",
-      "Suporte por chat e e-mail",
-    ],
-  },
-];
-
 export function CheckoutModal({ isOpen, onClose, selectedPlan, onSuccess }: CheckoutModalProps) {
   const { toast } = useToast();
   const [step, setStep] = useState<Step>("customer");
@@ -79,10 +63,20 @@ export function CheckoutModal({ isOpen, onClose, selectedPlan, onSuccess }: Chec
     ccv: "",
   });
 
-  const plan = selectedPlan || PLAN_DATA[0];
-  const price = billingCycle === "YEARLY" ? (plan.yearlyPrice || 497) : (plan.monthlyPrice || 597);
-  const totalPrice = billingCycle === "YEARLY" ? (plan.totalYearly || 5964) : price;
-  const savings = billingCycle === "YEARLY" ? 1200 : 0;
+  if (!selectedPlan) {
+    return null;
+  }
+
+  const plan = selectedPlan;
+  const price = billingCycle === "YEARLY" 
+    ? (plan.yearlyPrice || (plan.totalYearly ? plan.totalYearly / 12 : null) || 497)
+    : (plan.monthlyPrice || 597);
+  const totalPrice = billingCycle === "YEARLY" 
+    ? (plan.totalYearly || (plan.yearlyPrice ? plan.yearlyPrice * 12 : null) || 5964)
+    : price;
+  const savings = billingCycle === "YEARLY" && plan.monthlyPrice && plan.yearlyPrice
+    ? (plan.monthlyPrice * 12) - (plan.yearlyPrice * 12)
+    : 0;
 
   const handleCustomerSubmit = async () => {
     if (!customerData.name || !customerData.email || !customerData.cpfCnpj) {

@@ -5,9 +5,6 @@ import { prisma } from "@/lib/prisma";
 import {
   createSubscription,
   cancelSubscription,
-  createPrice,
-  PLAN_PRICES,
-  type PlanId,
 } from "@/lib/stripe";
 import { addMonths, addYears } from "date-fns";
 
@@ -26,9 +23,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { planId, billingCycle = "MONTHLY", paymentMethodId } = body;
 
-    if (!planId || !["PROFESSIONAL", "ENTERPRISE"].includes(planId)) {
+    if (!planId) {
       return NextResponse.json(
-        { error: "Invalid plan" },
+        { error: "Plan ID é obrigatório" },
         { status: 400 }
       );
     }
@@ -61,100 +58,52 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get plan price
-    const planPrice = PLAN_PRICES[planId as PlanId];
-    if (!planPrice || !planPrice.monthly) {
+    // Buscar plano do banco de dados
+    const plan = await prisma.plan.findUnique({
+      where: { planId: planId },
+    });
+
+    if (!plan) {
       return NextResponse.json(
-        { error: "Plan price not configured" },
+        { error: "Plano não encontrado" },
+        { status: 404 }
+      );
+    }
+
+    if (!plan.isActive) {
+      return NextResponse.json(
+        { error: "Plano não está ativo" },
         { status: 400 }
       );
     }
 
-    const amount = billingCycle === "YEARLY" ? planPrice.yearly! : planPrice.monthly!;
-    const interval = billingCycle === "YEARLY" ? "year" : "month";
-
-    // Criar ou buscar Price no Stripe
-    // Em produção, você deve criar os prices manualmente no Stripe Dashboard
-    // e armazenar os IDs no banco/env
-    const priceId = process.env[`STRIPE_PRICE_${planId}_${billingCycle}`] || "";
+    // Buscar price ID do Stripe baseado no ciclo de cobrança
+    const priceId = billingCycle === "YEARLY" 
+      ? plan.stripePriceIdYearly 
+      : plan.stripePriceIdMonthly;
 
     if (!priceId) {
-      // Criar price dinamicamente (não recomendado para produção)
-      const price = await createPrice({
-        amount,
-        currency: "brl",
-        recurring: {
-          interval: interval as "month" | "year",
+      return NextResponse.json(
+        { 
+          error: `Price ID do Stripe não configurado para o plano ${planId} (${billingCycle}). Sincronize os planos com o Stripe primeiro.` 
         },
-        metadata: {
-          planId,
-          billingCycle,
-        },
-      });
-
-      // Criar subscription
-      const subscription = await createSubscription({
-        customerId: company.stripeCustomerId,
-        priceId: price.id,
-        paymentMethodId,
-        metadata: {
-          companyId: company.id,
-          planId,
-          billingCycle,
-        },
-      });
-
-      // Calcular próxima data de vencimento
-      const nextDueDate = billingCycle === "YEARLY"
-        ? addYears(new Date(), 1)
-        : addMonths(new Date(), 1);
-
-      // Criar ou atualizar subscription no banco
-      await prisma.subscription.upsert({
-        where: { companyId: company.id },
-        create: {
-          companyId: company.id,
-          stripeSubscriptionId: subscription.id,
-          stripePriceId: price.id,
-          planId,
-          billingType: billingCycle === "YEARLY" ? "YEARLY" : "MONTHLY",
-          value: amount / 100, // Converter de centavos para reais
-          status: subscription.status === "active" ? "ACTIVE" : "PENDING",
-          nextDueDate,
-          cycle: billingCycle,
-        },
-        update: {
-          stripeSubscriptionId: subscription.id,
-          stripePriceId: price.id,
-          planId,
-          billingType: billingCycle === "YEARLY" ? "YEARLY" : "MONTHLY",
-          value: amount / 100,
-          status: subscription.status === "active" ? "ACTIVE" : "PENDING",
-          nextDueDate,
-          cycle: billingCycle,
-        },
-      });
-
-      // Atualizar plano da empresa
-      await prisma.company.update({
-        where: { id: company.id },
-        data: {
-          plan: planId,
-          isTrialing: false,
-        },
-      });
-
-      return NextResponse.json({
-        success: true,
-        subscription: {
-          id: subscription.id,
-          status: subscription.status,
-          current_period_end: (subscription as any).current_period_end,
-        },
-      });
+        { status: 400 }
+      );
     }
 
-    // Usar price ID existente
+    // Calcular valor baseado no plano
+    const planPrice = billingCycle === "YEARLY" 
+      ? (plan.yearlyPrice || plan.yearlyTotal ? (plan.yearlyTotal! / 12) : null)
+      : plan.monthlyPrice;
+
+    if (!planPrice || planPrice <= 0) {
+      return NextResponse.json(
+        { error: "Preço do plano não configurado" },
+        { status: 400 }
+      );
+    }
+
+    // Criar subscription no Stripe
     const subscription = await createSubscription({
       customerId: company.stripeCustomerId,
       priceId,
@@ -166,10 +115,12 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Calcular próxima data de vencimento
     const nextDueDate = billingCycle === "YEARLY"
       ? addYears(new Date(), 1)
       : addMonths(new Date(), 1);
 
+    // Criar ou atualizar subscription no banco
     await prisma.subscription.upsert({
       where: { companyId: company.id },
       create: {
@@ -178,7 +129,7 @@ export async function POST(request: NextRequest) {
         stripePriceId: priceId,
         planId,
         billingType: billingCycle === "YEARLY" ? "YEARLY" : "MONTHLY",
-        value: amount / 100,
+        value: planPrice,
         status: subscription.status === "active" ? "ACTIVE" : "PENDING",
         nextDueDate,
         cycle: billingCycle,
@@ -188,18 +139,22 @@ export async function POST(request: NextRequest) {
         stripePriceId: priceId,
         planId,
         billingType: billingCycle === "YEARLY" ? "YEARLY" : "MONTHLY",
-        value: amount / 100,
+        value: planPrice,
         status: subscription.status === "active" ? "ACTIVE" : "PENDING",
         nextDueDate,
         cycle: billingCycle,
       },
     });
 
+    // Atualizar plano da empresa e limites
     await prisma.company.update({
       where: { id: company.id },
       data: {
-        plan: planId,
+        plan: planId as any,
         isTrialing: false,
+        maxUsers: plan.maxUsers || company.maxUsers,
+        maxExecutions: plan.maxExecutions || company.maxExecutions,
+        credits: plan.maxCredits || company.credits,
       },
     });
 

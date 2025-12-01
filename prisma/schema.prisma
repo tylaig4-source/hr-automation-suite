@@ -582,3 +582,18 @@ enum RequestStatus {
   REJECTED // Rejeitado
   CLOSED // Fechado
 }
+
+// ===========================================
+// CONFIGURAÇÕES DO SISTEMA
+// ===========================================
+
+model SystemSettings {
+  id        String   @id @default(cuid())
+  key       String   @unique // Ex: "stripe_secret_key", "stripe_publishable_key", "stripe_webhook_secret"
+  value     String   @db.Text // Valor criptografado
+  encrypted Boolean  @default(true) // Se o valor está criptografado
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([key])
+}

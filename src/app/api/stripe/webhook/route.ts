@@ -1,13 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
-import { stripe, verifyWebhookSignature } from "@/lib/stripe";
+import { verifyWebhookSignature, getStripeInstance } from "@/lib/stripe";
+import { getStripeWebhookSecret } from "@/lib/stripe-settings";
 import Stripe from "stripe";
-
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
 export async function POST(request: NextRequest) {
   try {
+    // Buscar webhook secret do banco ou env
+    const dbWebhookSecret = await getStripeWebhookSecret();
+    const envWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    const webhookSecret = dbWebhookSecret || envWebhookSecret;
+
     if (!webhookSecret) {
       console.error("STRIPE_WEBHOOK_SECRET not configured");
       return NextResponse.json(
@@ -30,7 +34,7 @@ export async function POST(request: NextRequest) {
     // Verificar assinatura do webhook
     let event: Stripe.Event;
     try {
-      event = verifyWebhookSignature(body, signature, webhookSecret);
+      event = await verifyWebhookSignature(body, signature, webhookSecret);
     } catch (error) {
       console.error("Webhook signature verification failed:", error);
       return NextResponse.json(
@@ -121,6 +125,7 @@ async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
   }
 
   // Buscar charge associado
+  const stripe = await getStripeInstance();
   const charges = await stripe.charges.list({
     payment_intent: paymentIntent.id,
     limit: 1,
@@ -174,6 +179,7 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
 
   const subscriptionId = (invoice as any).subscription;
   if (subscriptionId) {
+    const stripe = await getStripeInstance();
     const subscription = typeof subscriptionId === "string"
       ? await stripe.subscriptions.retrieve(subscriptionId)
       : subscriptionId;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CreditCard, Edit, Trash2, CheckCircle, XCircle, Star } from "lucide-react";
+import { CreditCard, Edit, Trash2, CheckCircle, XCircle, Star, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -12,6 +12,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
 import { PlanForm } from "./plan-form";
 
 interface Plan {
@@ -44,6 +45,8 @@ interface PlansClientProps {
 export function PlansClient({ plans }: PlansClientProps) {
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const { toast } = useToast();
 
   const formatPrice = (price: number | null) => {
     if (price === null) return "Customizado";
@@ -65,8 +68,54 @@ export function PlansClient({ plans }: PlansClientProps) {
     return [];
   };
 
+  const syncWithStripe = async () => {
+    setIsSyncing(true);
+    try {
+      const response = await fetch("/api/admin/plans/sync-stripe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Erro ao sincronizar com Stripe");
+      }
+
+      toast({
+        title: "Sincronização concluída!",
+        description: data.message,
+      });
+
+      // Recarregar página para mostrar os IDs atualizados
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (error: any) {
+      toast({
+        title: "Erro ao sincronizar",
+        description: error.message || "Erro ao sincronizar planos com Stripe",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
+      {/* Botão de Sincronização */}
+      <div className="flex justify-end">
+        <Button
+          onClick={syncWithStripe}
+          disabled={isSyncing}
+          className="bg-gradient-to-r from-neon-cyan to-neon-magenta text-black font-semibold hover:opacity-90"
+        >
+          <RefreshCw className={`h-4 w-4 mr-2 ${isSyncing ? "animate-spin" : ""}`} />
+          {isSyncing ? "Sincronizando..." : "Sincronizar com Stripe"}
+        </Button>
+      </div>
+
       {plans.map((plan) => (
         <div
           key={plan.id}
@@ -150,15 +199,22 @@ export function PlansClient({ plans }: PlansClientProps) {
                 </ul>
               </div>
 
-              <div className="flex items-center gap-2 text-xs text-gray-500">
-                <span>ID: {plan.planId}</span>
-                <span>•</span>
-                <span>Ordem: {plan.orderIndex}</span>
+              <div className="flex items-center gap-2 text-xs">
+                <span className="text-gray-500">ID: {plan.planId}</span>
+                <span className="text-gray-500">•</span>
+                <span className="text-gray-500">Ordem: {plan.orderIndex}</span>
                 {plan.stripePriceIdMonthly && (
                   <>
-                    <span>•</span>
-                    <span>Stripe: {plan.stripePriceIdMonthly.slice(0, 20)}...</span>
+                    <span className="text-gray-500">•</span>
+                    <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">
+                      Stripe Configurado
+                    </Badge>
                   </>
+                )}
+                {!plan.stripePriceIdMonthly && !plan.isTrial && (
+                  <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 text-xs">
+                    Não sincronizado
+                  </Badge>
                 )}
               </div>
             </div>
