@@ -80,7 +80,7 @@ export function AdminHeader({ user }: AdminHeaderProps) {
                 variant="ghost"
                 className="relative h-10 w-10 rounded-full p-0 hover:ring-2 hover:ring-neon-cyan/50"
               >
-                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-neon-cyan to-neon-magenta flex items-center justify-center text-black font-bold">
+                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-neon-cyan to-neon-magenta flex items-center justify-center text-white dark:text-black font-bold">
                   {initials}
                 </div>
               </Button>

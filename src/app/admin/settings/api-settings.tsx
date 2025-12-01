@@ -289,7 +289,7 @@ export function ApiSettings() {
         <Button
           onClick={handleSave}
           disabled={saving || !secretKey || !publishableKey}
-          className="bg-gradient-to-r from-neon-cyan to-neon-magenta text-black font-semibold hover:opacity-90"
+          className="bg-gradient-to-r from-neon-cyan to-neon-magenta text-white dark:text-black font-semibold hover:opacity-90"
         >
           {saving ? (
             <>

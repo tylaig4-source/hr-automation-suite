@@ -50,25 +50,34 @@ export async function POST(request: NextRequest) {
     // Hash da senha
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Buscar configurações de trial do banco
-    const { getTrialSettings } = await import("@/lib/trial-settings");
-    const trialSettings = await getTrialSettings();
+    // Buscar plano TRIAL do banco para obter configurações
+    const trialPlan = await prisma.plan.findUnique({
+      where: { planId: "TRIAL" },
+      select: {
+        maxCredits: true,
+        maxExecutions: true,
+        maxUsers: true,
+      },
+    });
 
-    // Calcular datas do trial (configurável)
+    // Calcular datas do trial (padrão: 3 dias)
+    const trialDays = 3; // Pode ser configurado no futuro via campo no plano
     const trialStartDate = new Date();
     const trialEndDate = new Date();
-    trialEndDate.setDate(trialEndDate.getDate() + trialSettings.trialDays);
+    trialEndDate.setDate(trialEndDate.getDate() + trialDays);
 
-    // Criar empresa com trial usando configurações do banco
-    const trialCredits = trialSettings.trialCredits;
+    // Usar valores do plano TRIAL ou fallback
+    const trialCredits = trialPlan?.maxCredits || 50;
+    const trialExecutions = trialPlan?.maxExecutions || 50;
+    const trialUsers = trialPlan?.maxUsers || 1;
     const company = await prisma.company.create({
       data: {
         name: `Empresa de ${name.split(" ")[0]}`,
         slug: generateSlug(name),
         plan: "TRIAL",
-        maxUsers: 1,
-        maxExecutions: trialCredits, // Limite de requisições = créditos
-        credits: trialCredits, // 50 créditos para o trial de 3 dias
+        maxUsers: trialUsers,
+        maxExecutions: trialExecutions,
+        credits: trialCredits,
         isTrialing: true,
         trialStartDate,
         trialEndDate,

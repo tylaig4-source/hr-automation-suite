@@ -217,7 +217,7 @@ export default async function AdminCompanyDetailPage({
                   className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/5"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-neon-cyan to-neon-magenta flex items-center justify-center text-black font-bold text-sm">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-neon-cyan to-neon-magenta flex items-center justify-center text-white dark:text-black font-bold text-sm">
                       {user.name?.[0] || user.email[0].toUpperCase()}
                     </div>
                     <div>

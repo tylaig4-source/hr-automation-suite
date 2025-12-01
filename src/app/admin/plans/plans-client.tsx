@@ -142,7 +142,7 @@ export function PlansClient({ plans }: PlansClientProps) {
       <div className="flex justify-between items-center">
         <Dialog open={isNewPlanOpen} onOpenChange={setIsNewPlanOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-gradient-to-r from-neon-cyan to-neon-magenta text-black font-semibold hover:opacity-90">
+            <Button className="bg-gradient-to-r from-neon-cyan to-neon-magenta text-white dark:text-black font-semibold hover:opacity-90">
               <Plus className="h-4 w-4 mr-2" />
               Novo Plano
             </Button>
@@ -168,7 +168,7 @@ export function PlansClient({ plans }: PlansClientProps) {
         <Button
           onClick={syncWithStripe}
           disabled={isSyncing}
-          className="bg-gradient-to-r from-neon-cyan to-neon-magenta text-black font-semibold hover:opacity-90"
+          className="bg-gradient-to-r from-neon-cyan to-neon-magenta text-white dark:text-black font-semibold hover:opacity-90"
         >
           <RefreshCw className={`h-4 w-4 mr-2 ${isSyncing ? "animate-spin" : ""}`} />
           {isSyncing ? "Sincronizando..." : "Sincronizar com Stripe"}
