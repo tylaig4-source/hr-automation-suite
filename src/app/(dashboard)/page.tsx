@@ -197,7 +197,8 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-8">
       {/* Modal de Seleção de Plano - Mostrar se não tem plano ativo */}
-      {!companyInfo.hasActivePlan && (
+      {/* Verificar: sem companyId OU sem plano ativo */}
+      {(!companyId || !companyInfo.hasActivePlan) && (
         <PlanSelectionWrapper plans={plans} />
       )}
 
