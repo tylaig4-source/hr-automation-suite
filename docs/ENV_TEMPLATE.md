@@ -74,6 +74,14 @@ STRIPE_WEBHOOK_SECRET="whsec_..."
 # GOOGLE_CLIENT_SECRET="..."
 
 # --------------------------------------------
+# CRIPTOGRAFIA (Obrigatório para Stripe via Frontend)
+# --------------------------------------------
+# Chave de criptografia para dados sensíveis (Stripe keys, etc.)
+# Gere com: openssl rand -hex 32
+# IMPORTANTE: Mantenha a mesma chave entre restarts ou dados criptografados não poderão ser descriptografados
+ENCRYPTION_KEY="sua-chave-de-64-caracteres-hexadecimais-aqui"
+
+# --------------------------------------------
 # APLICAÇÃO
 # --------------------------------------------
 NODE_ENV="development"
