@@ -434,57 +434,83 @@ export async function syncPlanToStripe(data: {
   monthlyPriceId: string | null;
   yearlyPriceId: string | null;
 }> {
+  console.log(`[syncPlanToStripe] Iniciando sincronização para plano: ${data.planId}`);
+  
   const configured = await isStripeConfigured();
   if (!configured) {
-    throw new Error("Stripe não está configurado");
+    console.error("[syncPlanToStripe] Stripe não está configurado");
+    throw new Error("Stripe não está configurado. Configure as chaves em /admin/settings");
   }
 
+  console.log(`[syncPlanToStripe] Stripe configurado, criando/buscando produto: ${data.name}`);
+  
   // Criar ou buscar produto
-  const product = await findOrCreateProduct({
-    name: data.name,
-    description: data.description || undefined,
-    metadata: {
-      planId: data.planId,
-    },
-  });
+  let product: Stripe.Product;
+  try {
+    product = await findOrCreateProduct({
+      name: data.name,
+      description: data.description || undefined,
+      metadata: {
+        planId: data.planId,
+      },
+    });
+    console.log(`[syncPlanToStripe] Produto encontrado/criado: ${product.id}`);
+  } catch (error: any) {
+    console.error(`[syncPlanToStripe] Erro ao criar/buscar produto:`, error);
+    throw new Error(`Erro ao criar produto no Stripe: ${error.message}`);
+  }
 
   let monthlyPriceId: string | null = null;
   let yearlyPriceId: string | null = null;
 
   // Criar price mensal se tiver preço
   if (data.monthlyPrice !== null && data.monthlyPrice > 0) {
-    const stripe = await getStripeInstance();
-    const monthlyPrice = await stripe.prices.create({
-      product: product.id,
-      unit_amount: Math.round(data.monthlyPrice * 100), // Converter para centavos
-      currency: "brl",
-      recurring: {
-        interval: "month",
-      },
-      metadata: {
-        planId: data.planId,
-        billingCycle: "MONTHLY",
-      },
-    });
-    monthlyPriceId = monthlyPrice.id;
+    try {
+      console.log(`[syncPlanToStripe] Criando price mensal: R$ ${data.monthlyPrice}`);
+      const stripe = await getStripeInstance();
+      const monthlyPrice = await stripe.prices.create({
+        product: product.id,
+        unit_amount: Math.round(data.monthlyPrice * 100), // Converter para centavos
+        currency: "brl",
+        recurring: {
+          interval: "month",
+        },
+        metadata: {
+          planId: data.planId,
+          billingCycle: "MONTHLY",
+        },
+      });
+      monthlyPriceId = monthlyPrice.id;
+      console.log(`[syncPlanToStripe] Price mensal criado: ${monthlyPriceId}`);
+    } catch (error: any) {
+      console.error(`[syncPlanToStripe] Erro ao criar price mensal:`, error);
+      throw new Error(`Erro ao criar price mensal: ${error.message}`);
+    }
   }
 
   // Criar price anual se tiver preço
   if (data.yearlyPrice !== null && data.yearlyPrice > 0) {
-    const stripe = await getStripeInstance();
-    const yearlyPrice = await stripe.prices.create({
-      product: product.id,
-      unit_amount: Math.round(data.yearlyPrice * 100), // Converter para centavos
-      currency: "brl",
-      recurring: {
-        interval: "year",
-      },
-      metadata: {
-        planId: data.planId,
-        billingCycle: "YEARLY",
-      },
-    });
-    yearlyPriceId = yearlyPrice.id;
+    try {
+      console.log(`[syncPlanToStripe] Criando price anual: R$ ${data.yearlyPrice}/mês`);
+      const stripe = await getStripeInstance();
+      const yearlyPrice = await stripe.prices.create({
+        product: product.id,
+        unit_amount: Math.round(data.yearlyPrice * 100), // Converter para centavos
+        currency: "brl",
+        recurring: {
+          interval: "year",
+        },
+        metadata: {
+          planId: data.planId,
+          billingCycle: "YEARLY",
+        },
+      });
+      yearlyPriceId = yearlyPrice.id;
+      console.log(`[syncPlanToStripe] Price anual criado: ${yearlyPriceId}`);
+    } catch (error: any) {
+      console.error(`[syncPlanToStripe] Erro ao criar price anual:`, error);
+      throw new Error(`Erro ao criar price anual: ${error.message}`);
+    }
   }
 
   return {
