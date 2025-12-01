@@ -70,32 +70,107 @@ export async function POST(
 
     // Verificar se usuário tem empresa
     if (!session.user.companyId) {
-      // Tenta encontrar uma empresa existente pelo email (ex: admin@saasrh.com -> saasrh)
-      // Ou cria uma empresa padrão para o usuário
-      const defaultSlug = session.user.email.split("@")[0] + "-" + Date.now().toString(36);
-
-      const newCompany = await prisma.company.create({
-        data: {
-          name: "Minha Empresa",
-          slug: defaultSlug,
-          credits: 50, // Créditos iniciais
-          users: {
-            connect: { id: session.user.id }
-          }
-        }
-      });
-
-      // Atualiza a sessão localmente para continuar (o next-auth só atualizará no próximo login/refresh)
-      session.user.companyId = newCompany.id;
+      return NextResponse.json(
+        { 
+          error: "Você precisa escolher um plano primeiro. Complete o onboarding para continuar.",
+          requiresPlanSelection: true 
+        },
+        { status: 402 } // Payment Required
+      );
     }
 
-    // Verificar se usuário é ADMIN (acesso ilimitado)
+    // Verificar se usuário é ADMIN (acesso ilimitado) - mover para cima
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
       select: { role: true }
     });
 
     const isAdmin = user?.role === "ADMIN";
+
+    // Verificar se empresa tem plano ativo
+    const company = await prisma.company.findUnique({
+      where: { id: session.user.companyId },
+      select: {
+        credits: true,
+        isTrialing: true,
+        trialEndDate: true,
+        subscription: {
+          select: { status: true },
+        },
+      },
+    });
+
+    if (!company) {
+      return NextResponse.json(
+        { error: "Empresa não encontrada" },
+        { status: 404 }
+      );
+    }
+
+    // Verificar se tem plano ativo
+    const hasActiveTrial = company.isTrialing && company.trialEndDate && new Date(company.trialEndDate) > new Date();
+    const subscriptionStatus = company.subscription?.status;
+    const hasActiveSubscription = subscriptionStatus === "ACTIVE";
+    const hasActivePlan = hasActiveTrial || hasActiveSubscription;
+
+    // Bloquear se não tiver plano ativo
+    if (!hasActivePlan && company.credits === 0) {
+      return NextResponse.json(
+        { 
+          error: "Você precisa escolher um plano primeiro. Complete o onboarding para continuar.",
+          requiresPlanSelection: true 
+        },
+        { status: 402 } // Payment Required
+      );
+    }
+
+    // Bloquear se assinatura estiver em atraso, cancelada ou expirada
+    if (subscriptionStatus && subscriptionStatus !== "ACTIVE" && !hasActiveTrial) {
+      let errorMessage = "Assinatura inativa. ";
+      if (subscriptionStatus === "OVERDUE") {
+        errorMessage = "Pagamento em atraso. Atualize seu método de pagamento para continuar usando os agentes.";
+      } else if (subscriptionStatus === "CANCELED" || subscriptionStatus === "EXPIRED") {
+        errorMessage = "Assinatura cancelada ou expirada. Renove sua assinatura para continuar usando os agentes.";
+      } else if (subscriptionStatus === "PENDING") {
+        errorMessage = "Pagamento pendente. Complete o pagamento para continuar usando os agentes.";
+      }
+      
+      return NextResponse.json(
+        { 
+          error: errorMessage,
+          requiresPayment: true,
+          subscriptionStatus 
+        },
+        { status: 402 } // Payment Required
+      );
+    }
+
+    // VALIDAÇÃO DE SEGURANÇA: Se tem assinatura ACTIVE, validar com Stripe
+    // Isso previne manipulação do banco de dados
+    if (hasActiveSubscription && !isAdmin && session.user.companyId) {
+      try {
+        const { validateSubscriptionAccess, shouldValidateWithStripe } = await import("@/lib/subscription-security");
+        
+        // Validar com Stripe (pode ser configurado para validar apenas X% das vezes)
+        if (shouldValidateWithStripe()) {
+          const validation = await validateSubscriptionAccess(session.user.companyId);
+          
+          if (!validation.allowed) {
+            return NextResponse.json(
+              { 
+                error: validation.reason || "Assinatura inválida. Verifique seu método de pagamento.",
+                requiresPayment: true,
+                subscriptionStatus: "INVALID"
+              },
+              { status: 402 } // Payment Required
+            );
+          }
+        }
+      } catch (error: any) {
+        // Se houver erro na validação, logar mas permitir (para não bloquear usuários legítimos)
+        console.error("[Execute] Erro ao validar assinatura:", error);
+      }
+    }
 
     // Verificar se pode executar agentes (bloqueio de trial/assinatura)
     if (!isAdmin && session.user.companyId) {

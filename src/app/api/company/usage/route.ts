@@ -25,23 +25,21 @@ export async function GET(request: NextRequest) {
             if (user?.companyId) {
                 companyId = user.companyId;
             } else {
-                // Se realmente não tiver, cria uma com trial
+                // Se realmente não tiver, cria uma SEM plano ativo
+                // Usuário deve escolher plano no onboarding
                 const defaultSlug = session.user.email.split("@")[0] + "-" + Date.now().toString(36);
-                const trialStartDate = new Date();
-                const trialEndDate = new Date();
-                trialEndDate.setDate(trialEndDate.getDate() + 3);
 
                 const newCompany = await prisma.company.create({
                     data: {
                         name: "Minha Empresa",
                         slug: defaultSlug,
-                        plan: "TRIAL",
-                        credits: 10,
-                        maxUsers: 1,
-                        maxExecutions: 10,
-                        isTrialing: true,
-                        trialStartDate,
-                        trialEndDate,
+                        plan: "TRIAL", // Apenas referência, mas sem acesso
+                        credits: 0, // Sem créditos até escolher plano
+                        maxUsers: 0, // Sem acesso até escolher plano
+                        maxExecutions: 0, // Sem acesso até escolher plano
+                        isTrialing: false, // Não está em trial até escolher
+                        trialStartDate: null,
+                        trialEndDate: null,
                         users: {
                             connect: { id: session.user.id }
                         }
@@ -68,6 +66,9 @@ export async function GET(request: NextRequest) {
                 maxUsers: true,
                 isTrialing: true,
                 trialEndDate: true,
+                subscription: {
+                    select: { status: true },
+                },
             },
         });
 
@@ -108,6 +109,11 @@ export async function GET(request: NextRequest) {
             trialExpired = diffTime <= 0;
         }
 
+        // Verificar se tem plano ativo
+        const hasActiveTrial = company.isTrialing && company.trialEndDate && new Date(company.trialEndDate) > new Date();
+        const hasActiveSubscription = company.subscription?.status === "ACTIVE";
+        const hasActivePlan = hasActiveTrial || hasActiveSubscription;
+
         return NextResponse.json({
             plan: company.plan,
             credits: isAdmin ? 999999 : company.credits, // Admin tem créditos ilimitados
@@ -124,6 +130,9 @@ export async function GET(request: NextRequest) {
             trialEndDate: company.trialEndDate,
             trialDaysLeft,
             trialExpired,
+            // Plan status
+            hasActivePlan,
+            subscription: company.subscription,
         });
     } catch (error) {
         console.error("Erro ao buscar uso:", error);

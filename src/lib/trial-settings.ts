@@ -94,12 +94,54 @@ export async function canExecuteAgents(companyId: string): Promise<{ allowed: bo
 
   // Se não está em trial, verificar assinatura
   if (company.subscription) {
-    if (company.subscription.status === "ACTIVE") {
-      return { allowed: true };
+    const subStatus = company.subscription.status;
+    
+    // Apenas ACTIVE permite execução
+    if (subStatus === "ACTIVE") {
+      // VALIDAÇÃO DE SEGURANÇA: Verificar com Stripe em tempo real
+      // Isso previne manipulação do banco de dados
+      try {
+        const { validateSubscriptionAccess, shouldValidateWithStripe } = await import("./subscription-security");
+        
+        // Validar com Stripe (pode ser configurado para validar apenas X% das vezes)
+        if (shouldValidateWithStripe()) {
+          const validation = await validateSubscriptionAccess(companyId);
+          
+          if (!validation.allowed) {
+            return {
+              allowed: false,
+              reason: validation.reason || "Assinatura inválida",
+            };
+          }
+        }
+        
+        return { allowed: true };
+      } catch (error) {
+        // Se houver erro na validação, permitir por padrão mas logar
+        console.error("[Trial Settings] Erro ao validar assinatura:", error);
+        return { allowed: true };
+      }
     }
+    
+    // Bloquear para todos os outros status
+    if (subStatus === "OVERDUE") {
+      return {
+        allowed: false,
+        reason: "Pagamento em atraso. Atualize seu método de pagamento para continuar usando os agentes.",
+      };
+    }
+    
+    if (subStatus === "EXPIRED" || subStatus === "CANCELED") {
+      return {
+        allowed: false,
+        reason: "Assinatura cancelada ou expirada. Renove sua assinatura para continuar usando os agentes.",
+      };
+    }
+    
+    // PENDING também bloqueia (aguardando primeiro pagamento)
     return {
       allowed: false,
-      reason: "Assinatura inativa. Renove sua assinatura para continuar usando os agentes.",
+      reason: "Assinatura pendente. Complete o pagamento para continuar usando os agentes.",
     };
   }
 

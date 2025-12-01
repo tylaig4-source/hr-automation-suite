@@ -19,6 +19,8 @@ import { categories, getAgentsByCategory } from "../../../prompts";
 import { Button } from "@/components/ui/button";
 import { OnboardingWrapper } from "@/components/dashboard/onboarding-wrapper";
 import { TrialUpgradeAlert } from "@/components/dashboard/trial-upgrade-alert";
+import { PlanSelectionWrapper } from "@/components/dashboard/plan-selection-wrapper";
+import { PaymentAlert } from "@/components/dashboard/payment-alert";
 import { getTrialSettings } from "@/lib/trial-settings";
 
 const quickAccess = [
@@ -48,6 +50,10 @@ export default async function DashboardPage() {
     isTrialing: false,
     trialDaysLeft: 0,
     trialExpired: false,
+    hasActivePlan: false, // Se tem plano ativo (trial ou assinatura)
+    credits: 0,
+    subscriptionStatus: undefined as "PENDING" | "ACTIVE" | "OVERDUE" | "CANCELED" | "EXPIRED" | undefined,
+    subscriptionNextDueDate: null as Date | null,
   };
 
   if (companyId) {
@@ -58,12 +64,27 @@ export default async function DashboardPage() {
           plan: true,
           isTrialing: true,
           trialEndDate: true,
+          credits: true,
+          subscription: {
+            select: { 
+              status: true,
+              nextDueDate: true,
+            },
+          },
         },
       });
 
       if (company) {
         companyInfo.plan = company.plan;
         companyInfo.isTrialing = company.isTrialing || false;
+        companyInfo.credits = company.credits || 0;
+        companyInfo.subscriptionStatus = company.subscription?.status;
+        companyInfo.subscriptionNextDueDate = company.subscription?.nextDueDate || null;
+        
+        // Verificar se tem plano ativo (trial ativo OU assinatura ativa)
+        const hasActiveTrial = company.isTrialing && company.trialEndDate && new Date(company.trialEndDate) > new Date();
+        const hasActiveSubscription = company.subscription?.status === "ACTIVE";
+        companyInfo.hasActivePlan = hasActiveTrial || hasActiveSubscription;
         
         if (company.isTrialing && company.trialEndDate) {
           const now = new Date();
@@ -166,16 +187,39 @@ export default async function DashboardPage() {
     }
   }
 
+  // Buscar planos para o modal de seleção
+  const plans = await prisma.plan.findMany({
+    where: { isActive: true },
+    orderBy: { orderIndex: "asc" },
+  });
+
   return (
     <div className="space-y-8">
-      <OnboardingWrapper
-        companyInfo={{
-          isTrialing: companyInfo.isTrialing,
-          trialDaysLeft: companyInfo.trialDaysLeft,
-        }}
-      />
-      {/* Trial Upgrade Alert */}
-      {(companyInfo.isTrialing || companyInfo.trialExpired || !trialSettings.allowTrialWithoutCard) && (
+      {/* Modal de Seleção de Plano - Mostrar se não tem plano ativo */}
+      {!companyInfo.hasActivePlan && (
+        <PlanSelectionWrapper plans={plans} />
+      )}
+
+      {/* Onboarding normal - apenas se tiver plano ativo */}
+      {companyInfo.hasActivePlan && (
+        <OnboardingWrapper
+          companyInfo={{
+            isTrialing: companyInfo.isTrialing,
+            trialDaysLeft: companyInfo.trialDaysLeft,
+          }}
+        />
+      )}
+
+      {/* Payment Alert - mostrar se tiver assinatura com problemas */}
+      {companyInfo.subscriptionStatus && companyInfo.subscriptionStatus !== "ACTIVE" && (
+        <PaymentAlert
+          subscriptionStatus={companyInfo.subscriptionStatus}
+          nextDueDate={companyInfo.subscriptionNextDueDate}
+        />
+      )}
+
+      {/* Trial Upgrade Alert - apenas se tiver plano ativo */}
+      {companyInfo.hasActivePlan && (companyInfo.isTrialing || companyInfo.trialExpired || !trialSettings.allowTrialWithoutCard) && (
         <TrialUpgradeAlert
           trialDaysLeft={companyInfo.trialDaysLeft}
           trialExpired={companyInfo.trialExpired}

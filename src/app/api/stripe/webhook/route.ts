@@ -199,16 +199,46 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
 
   const subscriptionId = (invoice as any).subscription;
   if (subscriptionId) {
-    await prisma.subscription.updateMany({
+    const stripe = await getStripeInstance();
+    const subscription = typeof subscriptionId === "string"
+      ? await stripe.subscriptions.retrieve(subscriptionId)
+      : subscriptionId;
+
+    // Atualizar status da assinatura
+    const updatedSubscription = await prisma.subscription.updateMany({
       where: {
-        stripeSubscriptionId: typeof subscriptionId === "string"
-          ? subscriptionId
-          : subscriptionId.id,
+        stripeSubscriptionId: subscription.id,
       },
       data: {
         status: "OVERDUE",
       },
     });
+
+    // Buscar empresa associada
+    const subscriptionRecord = await prisma.subscription.findFirst({
+      where: { stripeSubscriptionId: subscription.id },
+      select: { companyId: true, company: { select: { users: { select: { id: true } } } } },
+    });
+
+    if (subscriptionRecord) {
+      // Criar notificação para todos os usuários da empresa
+      const userIds = subscriptionRecord.company.users.map(u => u.id);
+      
+      await Promise.all(
+        userIds.map(userId =>
+          prisma.notification.create({
+            data: {
+              userId,
+              title: "⚠️ Pagamento Falhou",
+              message: `O pagamento da sua assinatura falhou. Por favor, atualize seu método de pagamento para continuar usando a plataforma.`,
+              type: "WARNING",
+            },
+          })
+        )
+      );
+
+      console.log(`[Stripe Webhook] Notificações de pagamento falho criadas para empresa ${subscriptionRecord.companyId}`);
+    }
   }
 }
 
@@ -218,13 +248,50 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
   const companyId = subscription.metadata?.companyId;
   if (!companyId) return;
 
-    await prisma.subscription.updateMany({
+  // Mapear status do Stripe para nosso enum
+  let status: "PENDING" | "ACTIVE" | "OVERDUE" | "CANCELED" | "EXPIRED" = "PENDING";
+  if (subscription.status === "active") {
+    status = "ACTIVE";
+  } else if (subscription.status === "past_due" || subscription.status === "unpaid") {
+    status = "OVERDUE";
+  } else if (subscription.status === "canceled") {
+    status = "CANCELED";
+  } else if (subscription.status === "incomplete_expired") {
+    status = "EXPIRED";
+  }
+
+  await prisma.subscription.updateMany({
+    where: { stripeSubscriptionId: subscription.id },
+    data: {
+      status,
+      nextDueDate: new Date((subscription as any).current_period_end * 1000),
+    },
+  });
+
+  // Se status mudou para OVERDUE, criar notificações
+  if (status === "OVERDUE") {
+    const subscriptionRecord = await prisma.subscription.findFirst({
       where: { stripeSubscriptionId: subscription.id },
-      data: {
-        status: subscription.status === "active" ? "ACTIVE" : "PENDING",
-        nextDueDate: new Date((subscription as any).current_period_end * 1000),
-      },
+      select: { companyId: true, company: { select: { users: { select: { id: true } } } } },
     });
+
+    if (subscriptionRecord) {
+      const userIds = subscriptionRecord.company.users.map(u => u.id);
+      
+      await Promise.all(
+        userIds.map(userId =>
+          prisma.notification.create({
+            data: {
+              userId,
+              title: "⚠️ Assinatura em Atraso",
+              message: `Sua assinatura está em atraso. Atualize seu método de pagamento para evitar interrupção do serviço.`,
+              type: "WARNING",
+            },
+          })
+        )
+      );
+    }
+  }
 }
 
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {

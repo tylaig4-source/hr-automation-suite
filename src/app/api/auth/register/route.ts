@@ -50,37 +50,19 @@ export async function POST(request: NextRequest) {
     // Hash da senha
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Buscar plano TRIAL do banco para obter configurações
-    const trialPlan = await prisma.plan.findUnique({
-      where: { planId: "TRIAL" },
-      select: {
-        maxCredits: true,
-        maxExecutions: true,
-        maxUsers: true,
-      },
-    });
-
-    // Calcular datas do trial (padrão: 3 dias)
-    const trialDays = 3; // Pode ser configurado no futuro via campo no plano
-    const trialStartDate = new Date();
-    const trialEndDate = new Date();
-    trialEndDate.setDate(trialEndDate.getDate() + trialDays);
-
-    // Usar valores do plano TRIAL ou fallback
-    const trialCredits = trialPlan?.maxCredits || 50;
-    const trialExecutions = trialPlan?.maxExecutions || 50;
-    const trialUsers = trialPlan?.maxUsers || 1;
+    // Criar empresa SEM plano ativo - usuário deve escolher no onboarding
+    // Não atribuir trial automaticamente, nem créditos
     const company = await prisma.company.create({
       data: {
         name: `Empresa de ${name.split(" ")[0]}`,
         slug: generateSlug(name),
-        plan: "TRIAL",
-        maxUsers: trialUsers,
-        maxExecutions: trialExecutions,
-        credits: trialCredits,
-        isTrialing: true,
-        trialStartDate,
-        trialEndDate,
+        plan: "TRIAL", // Apenas para referência, mas isTrialing = false
+        maxUsers: 0, // Sem acesso até escolher plano
+        maxExecutions: 0, // Sem acesso até escolher plano
+        credits: 0, // Sem créditos até escolher plano
+        isTrialing: false, // Não está em trial até escolher
+        trialStartDate: null,
+        trialEndDate: null,
       },
     });
 
@@ -108,20 +90,15 @@ export async function POST(request: NextRequest) {
       data: {
         userId: user.id,
         title: "Bem-vindo ao HR Suite! 🎉",
-        message: `Seu trial de 3 dias começou! Você tem até ${trialEndDate.toLocaleDateString("pt-BR")} para explorar todas as funcionalidades.`,
-        type: "SUCCESS",
+        message: "Complete o onboarding para escolher seu plano e começar a usar a plataforma.",
+        type: "INFO",
       },
     });
 
     return NextResponse.json({
       success: true,
       user,
-      trial: {
-        startDate: trialStartDate.toISOString(),
-        endDate: trialEndDate.toISOString(),
-        daysLeft: 3,
-        isTrialing: true,
-      },
+      requiresOnboarding: true, // Indica que precisa escolher plano
     });
   } catch (error) {
     console.error("Erro no registro:", error);

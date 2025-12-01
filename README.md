@@ -48,6 +48,9 @@ Profissionais de RH gastam em média 60-70% do seu tempo em tarefas operacionais
 - 📄 **Exportação PDF/DOCX** - Exportar resultados em documentos
 - 💳 **Sistema de Pagamentos** - Integração com Stripe (Cartão de Crédito e PIX)
 - 📦 **Planos e Assinaturas** - Sistema de planos com trial gratuito de 3 dias
+- 🔒 **Segurança de Assinaturas** - Validação em tempo real com Stripe para prevenir fraudes
+- ⚠️ **Sistema de Bloqueio** - Bloqueio automático quando pagamento falha ou assinatura expira
+- 🔔 **Avisos de Pagamento** - Alertas automáticos para pagamentos pendentes/atrasados
 - 👥 **Painel Administrativo** - Gerenciamento de empresas, usuários e pagamentos
 - 🎨 **Interface Moderna** - Design responsivo com dark mode
 - 🔄 **Multi-Provider IA** - OpenAI GPT-4 e Google Gemini com fallback automático
@@ -238,6 +241,15 @@ NODE_ENV="development"
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
 RATE_LIMIT_REQUESTS_PER_MINUTE=30
 MAX_TOKENS_PER_REQUEST=4000
+
+# ===========================================
+# SEGURANÇA DE ASSINATURAS (Opcional)
+# ===========================================
+# Taxa de validação de assinaturas com Stripe (0.0 a 1.0)
+# 1.0 = sempre validar (máxima segurança, mais lento)
+# 0.1 = validar 10% das vezes (mais rápido, menos seguro)
+# Padrão: 1.0 (sempre validar)
+SUBSCRIPTION_VALIDATION_RATE=1.0
 ```
 
 #### 3. Subir Containers Docker
@@ -309,6 +321,35 @@ Ver [PROJECT_STRUCTURE.md](./PROJECT_STRUCTURE.md) para detalhes completos.
 
 ---
 
+## 🔒 Segurança de Assinaturas
+
+O sistema possui múltiplas camadas de segurança para prevenir fraudes e garantir que apenas usuários com assinaturas válidas tenham acesso:
+
+### Validação em Tempo Real
+
+- **Validação com Stripe**: Antes de permitir acesso, o sistema valida a assinatura diretamente com o Stripe
+- **Prevenção de Manipulação**: Impede que status de assinatura sejam alterados manualmente no banco
+- **Bloqueio Automático**: Bloqueia acesso imediatamente quando pagamento falha ou assinatura expira
+
+### Sistema de Avisos
+
+- **Alertas de Pagamento**: Avisa quando pagamento está próximo do vencimento (7 dias antes)
+- **Notificações Automáticas**: Cria notificações quando pagamento falha ou assinatura expira
+- **Alertas Visuais**: Componentes de alerta no dashboard para diferentes status de pagamento
+
+### Verificação Periódica
+
+Configure um cron job para verificar assinaturas expiradas automaticamente:
+
+```bash
+# Executar diariamente às 2h da manhã
+0 2 * * * curl -X POST https://seu-dominio.com/api/admin/subscriptions/check-expired
+```
+
+Veja [docs/SUBSCRIPTION_EXPIRATION_CHECK.md](./docs/SUBSCRIPTION_EXPIRATION_CHECK.md) para mais detalhes.
+
+---
+
 ## ⚙️ Configuração de Modelos de IA
 
 O sistema suporta múltiplos providers de IA com fallback automático. Você pode configurar qual modelo usar para cada provider através de variáveis de ambiente:
@@ -374,6 +415,11 @@ O sistema usa fallback automático quando configurado como `provider: "auto"`:
 | [✅ Checklist de Implementação](./IMPLEMENTATION_CHECKLIST.md) | Status das features |
 | [📸 Snapshot Sprint 3](./docs/SNAPSHOT_SPRINT3.md) | Estado atual do projeto |
 | [🚀 Deploy Vercel](./docs/DEPLOY_VERCEL.md) | Guia de deploy (opcional) |
+| [🔒 Segurança de Assinaturas](./docs/SUBSCRIPTION_EXPIRATION_CHECK.md) | Verificação e validação de assinaturas |
+| [💳 Guia Stripe](./docs/STRIPE_KEYS_GUIDE.md) | Como obter e configurar chaves do Stripe |
+| [🔐 Criptografia Stripe](./docs/STRIPE_ENCRYPTION_FIX.md) | Solução para erros de descriptografia |
+| [🔄 Sincronização Stripe](./docs/STRIPE_SYNC.md) | Sincronização de planos com Stripe |
+| [🖥️ Deploy VPS](./docs/VPS_DEPLOYMENT.md) | Guia completo de deploy em VPS |
 
 ---
 
@@ -438,8 +484,15 @@ npm run test:e2e     # Executa testes E2E (Playwright)
 - [x] Sistema de pagamentos (Stripe)
 - [x] Planos e assinaturas
 - [x] Painel administrativo
+- [x] Segurança de assinaturas (validação em tempo real)
+- [x] Sistema de bloqueio por pagamento
+- [x] Onboarding com seleção de plano obrigatória
 
 ### 🚧 Fase 2: Crescimento (Em desenvolvimento)
+- [x] Sistema de segurança de assinaturas (validação em tempo real)
+- [x] Bloqueio automático quando pagamento falha
+- [x] Avisos de pagamento pendente/atrasado
+- [x] Verificação periódica de assinaturas expiradas
 - [ ] 34 agentes completos (26 restantes)
 - [ ] Notificações em tempo real
 - [ ] Analytics avançado
