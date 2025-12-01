@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
 import { PlanSelectionModal } from "@/components/onboarding/plan-selection-modal";
 
 interface Plan {
@@ -28,37 +27,19 @@ interface PlanSelectionWrapperProps {
 }
 
 export function PlanSelectionWrapper({ plans }: PlanSelectionWrapperProps) {
-  const { data: session } = useSession();
   const [showModal, setShowModal] = useState(false);
-  const [hasChecked, setHasChecked] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    if (session?.user) {
-      // Verificar se empresa tem plano ativo
-      fetch("/api/company/usage")
-        .then((res) => res.json())
-        .then((data) => {
-          // Verificar se tem plano ativo usando o campo hasActivePlan ou verificar manualmente
-          const hasActivePlan = data.hasActivePlan !== undefined 
-            ? data.hasActivePlan 
-            : ((data.isTrialing && !data.trialExpired) || 
-               (data.subscription?.status === "ACTIVE") ||
-               (data.credits > 0 && data.maxExecutions > 0));
-          
-          if (!hasActivePlan) {
-            setShowModal(true);
-          }
-          setHasChecked(true);
-        })
-        .catch(() => {
-          // Em caso de erro, mostrar modal por segurança
-          setShowModal(true);
-          setHasChecked(true);
-        });
-    }
-  }, [session]);
+    // Garantir que o componente está montado no cliente
+    setMounted(true);
+    // Mostrar modal imediatamente quando montar
+    // O servidor já verificou que não tem plano ativo antes de renderizar este componente
+    setShowModal(true);
+  }, []);
 
-  if (!hasChecked || !showModal) {
+  // Não renderizar nada até montar no cliente (evitar hydration mismatch)
+  if (!mounted) {
     return null;
   }
 
