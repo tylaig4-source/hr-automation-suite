@@ -47,11 +47,10 @@ export default async function AdminPlansPage() {
             Gerencie os planos disponíveis na plataforma
           </p>
         </div>
-        <Button className="bg-gradient-to-r from-neon-cyan to-neon-magenta text-black font-semibold hover:opacity-90">
-          <Plus className="h-4 w-4 mr-2" />
-          Novo Plano
-        </Button>
       </div>
+
+      {/* Plans List */}
+      <PlansClient plans={plans} />
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
@@ -69,8 +68,6 @@ export default async function AdminPlansPage() {
         </div>
       </div>
 
-      {/* Plans List */}
-      <PlansClient plans={plans} />
     </div>
   );
 }

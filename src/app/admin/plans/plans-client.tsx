@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CreditCard, Edit, Trash2, CheckCircle, XCircle, Star, RefreshCw } from "lucide-react";
+import { CreditCard, Edit, Trash2, CheckCircle, XCircle, Star, RefreshCw, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -45,6 +45,7 @@ interface PlansClientProps {
 export function PlansClient({ plans }: PlansClientProps) {
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isNewPlanOpen, setIsNewPlanOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const { toast } = useToast();
 
@@ -111,10 +112,59 @@ export function PlansClient({ plans }: PlansClientProps) {
     }
   };
 
+  // Criar plano vazio para novo plano
+  const emptyPlan: Plan = {
+    id: "",
+    planId: "",
+    name: "",
+    description: null,
+    monthlyPrice: null,
+    yearlyPrice: null,
+    yearlyTotal: null,
+    maxUsers: null,
+    maxExecutions: null,
+    maxCredits: null,
+    features: [],
+    isActive: true,
+    isPopular: false,
+    isTrial: false,
+    isEnterprise: false,
+    stripePriceIdMonthly: null,
+    stripePriceIdYearly: null,
+    orderIndex: plans.length > 0 ? Math.max(...plans.map(p => p.orderIndex)) + 1 : 0,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
   return (
     <div className="space-y-4">
-      {/* Botão de Sincronização */}
-      <div className="flex justify-end">
+      {/* Botões de Ação */}
+      <div className="flex justify-between items-center">
+        <Dialog open={isNewPlanOpen} onOpenChange={setIsNewPlanOpen}>
+          <DialogTrigger asChild>
+            <Button className="bg-gradient-to-r from-neon-cyan to-neon-magenta text-black font-semibold hover:opacity-90">
+              <Plus className="h-4 w-4 mr-2" />
+              Novo Plano
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-3xl bg-[#0a0a0f] border-white/10 text-white max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-white">Criar Novo Plano</DialogTitle>
+              <DialogDescription className="text-gray-400">
+                Preencha os dados do novo plano
+              </DialogDescription>
+            </DialogHeader>
+            <PlanForm
+              plan={emptyPlan}
+              isNew={true}
+              onSuccess={() => {
+                setIsNewPlanOpen(false);
+                window.location.reload();
+              }}
+            />
+          </DialogContent>
+        </Dialog>
+
         <Button
           onClick={syncWithStripe}
           disabled={isSyncing}

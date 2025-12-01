@@ -517,6 +517,8 @@ export async function syncPlanToStripe(data: {
       console.error(`[syncPlanToStripe] Erro ao criar price mensal:`, error);
       throw new Error(`Erro ao criar price mensal: ${error.message}`);
     }
+  } else if (data.monthlyPrice === null) {
+    console.log(`[syncPlanToStripe] Price mensal não configurado para ${data.planId} (pode ser Enterprise customizado)`);
   }
 
   // Criar price anual se tiver preço
@@ -542,6 +544,8 @@ export async function syncPlanToStripe(data: {
       console.error(`[syncPlanToStripe] Erro ao criar price anual:`, error);
       throw new Error(`Erro ao criar price anual: ${error.message}`);
     }
+  } else if (data.yearlyPrice === null) {
+    console.log(`[syncPlanToStripe] Price anual não configurado para ${data.planId} (pode ser Enterprise customizado)`);
   }
 
   return {

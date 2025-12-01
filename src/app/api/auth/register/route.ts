@@ -50,14 +50,17 @@ export async function POST(request: NextRequest) {
     // Hash da senha
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Calcular datas do trial (3 dias)
+    // Buscar configurações de trial do banco
+    const { getTrialSettings } = await import("@/lib/trial-settings");
+    const trialSettings = await getTrialSettings();
+
+    // Calcular datas do trial (configurável)
     const trialStartDate = new Date();
     const trialEndDate = new Date();
-    trialEndDate.setDate(trialEndDate.getDate() + 3); // 3 dias de trial
+    trialEndDate.setDate(trialEndDate.getDate() + trialSettings.trialDays);
 
-    // Criar empresa com trial
-    // Trial: 1 usuário, 50 créditos/requisições
-    const trialCredits = 50;
+    // Criar empresa com trial usando configurações do banco
+    const trialCredits = trialSettings.trialCredits;
     const company = await prisma.company.create({
       data: {
         name: `Empresa de ${name.split(" ")[0]}`,

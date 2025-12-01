@@ -81,16 +81,34 @@ export async function POST(request: NextRequest) {
       try {
         console.log(`[Sync Stripe] Processando plano: ${plan.planId} - ${plan.name}`);
         
-        // Pular planos de trial (gratuitos)
-        if (plan.isTrial || (plan.monthlyPrice === null && plan.yearlyPrice === null)) {
-          console.log(`[Sync Stripe] Plano ${plan.planId} pulado (trial ou sem preço)`);
+        // Pular apenas planos de trial (gratuitos)
+        // Planos Enterprise podem ser sincronizados mesmo sem preços (são customizados)
+        if (plan.isTrial) {
+          console.log(`[Sync Stripe] Plano ${plan.planId} pulado (trial)`);
           results.push({
             planId: plan.planId,
             name: plan.name,
             status: "skipped",
-            message: "Plano de trial ou sem preço, pulado",
+            message: "Plano de trial, pulado",
           });
           continue;
+        }
+        
+        // Avisar se plano não tem preços (mas ainda sincronizar para Enterprise)
+        if (plan.monthlyPrice === null && plan.yearlyPrice === null && !plan.isEnterprise) {
+          console.log(`[Sync Stripe] Plano ${plan.planId} pulado (sem preço e não é Enterprise)`);
+          results.push({
+            planId: plan.planId,
+            name: plan.name,
+            status: "skipped",
+            message: "Plano sem preço configurado, pulado",
+          });
+          continue;
+        }
+        
+        // Avisar se Enterprise não tem preços (mas sincronizar mesmo assim)
+        if (plan.isEnterprise && plan.monthlyPrice === null && plan.yearlyPrice === null) {
+          console.log(`[Sync Stripe] Aviso: Plano ${plan.planId} é Enterprise e não tem preços configurados. Sincronizando apenas o produto.`);
         }
 
         // Sincronizar com Stripe

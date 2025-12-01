@@ -18,6 +18,8 @@ import { formatRelativeTime } from "@/lib/utils";
 import { categories, getAgentsByCategory } from "../../../prompts";
 import { Button } from "@/components/ui/button";
 import { OnboardingWrapper } from "@/components/dashboard/onboarding-wrapper";
+import { TrialUpgradeAlert } from "@/components/dashboard/trial-upgrade-alert";
+import { getTrialSettings } from "@/lib/trial-settings";
 
 const quickAccess = [
   { name: "Criar Vaga", href: "/dashboard/agents/criador-descricao-vagas", category: "Recrutamento", color: "#00ffff" },
@@ -36,6 +38,9 @@ export default async function DashboardPage() {
   const userName = session?.user?.name?.split(" ")[0] || "Usuário";
   const userId = session?.user?.id;
   const companyId = session?.user?.companyId;
+
+  // Buscar configurações de trial
+  const trialSettings = await getTrialSettings();
 
   // Buscar informações da empresa
   let companyInfo = {
@@ -169,53 +174,13 @@ export default async function DashboardPage() {
           trialDaysLeft: companyInfo.trialDaysLeft,
         }}
       />
-      {/* Trial Banner */}
-      {companyInfo.isTrialing && (
-        <div className={`rounded-2xl p-6 border ${
-          companyInfo.trialExpired
-            ? "bg-red-500/10 border-red-500/30"
-            : companyInfo.trialDaysLeft <= 1
-            ? "bg-amber-500/10 border-amber-500/30"
-            : "bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border-indigo-500/30"
-        }`}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className={`p-3 rounded-xl ${
-                companyInfo.trialExpired
-                  ? "bg-red-500/20"
-                  : companyInfo.trialDaysLeft <= 1
-                  ? "bg-amber-500/20"
-                  : "bg-indigo-500/20"
-              }`}>
-                {companyInfo.trialExpired ? (
-                  <AlertCircle className="w-6 h-6 text-red-500" />
-                ) : (
-                  <Clock className="w-6 h-6 text-amber-500" />
-                )}
-              </div>
-              <div>
-                <h3 className="font-semibold text-lg mb-1">
-                  {companyInfo.trialExpired
-                    ? "Trial Expirado"
-                    : `Trial Grátis - ${companyInfo.trialDaysLeft} dia${companyInfo.trialDaysLeft !== 1 ? 's' : ''} restante${companyInfo.trialDaysLeft !== 1 ? 's' : ''}`
-                  }
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  {companyInfo.trialExpired
-                    ? "Seu trial expirou. Assine agora para continuar usando a plataforma."
-                    : "Faça upgrade para desbloquear recursos ilimitados e continuar após o trial."
-                  }
-                </p>
-              </div>
-            </div>
-            <Link href="/dashboard/plans">
-              <Button className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700">
-                <CreditCard className="w-4 h-4 mr-2" />
-                {companyInfo.trialExpired ? "Assinar Agora" : "Fazer Upgrade"}
-              </Button>
-            </Link>
-          </div>
-        </div>
+      {/* Trial Upgrade Alert */}
+      {(companyInfo.isTrialing || companyInfo.trialExpired || !trialSettings.allowTrialWithoutCard) && (
+        <TrialUpgradeAlert
+          trialDaysLeft={companyInfo.trialDaysLeft}
+          trialExpired={companyInfo.trialExpired}
+          allowTrialWithoutCard={trialSettings.allowTrialWithoutCard}
+        />
       )}
 
       {/* Welcome Section */}
