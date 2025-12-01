@@ -122,7 +122,7 @@ export default async function AdminCompaniesPage({
             Gerencie todas as empresas cadastradas na plataforma
           </p>
         </div>
-        <Button className="bg-gradient-to-r from-neon-cyan to-neon-magenta text-black font-semibold hover:opacity-90">
+        <Button className="bg-gradient-to-r from-neon-cyan to-neon-magenta text-white dark:text-black font-semibold hover:opacity-90">
           <Plus className="h-4 w-4 mr-2" />
           Nova Empresa
         </Button>

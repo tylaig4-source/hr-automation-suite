@@ -2,27 +2,39 @@ import { prisma } from "@/lib/prisma";
 
 /**
  * Busca configurações de trial do banco de dados
+ * Agora busca do plano TRIAL e SystemSettings (apenas allowTrialWithoutCard)
  */
 export async function getTrialSettings() {
-  const getSetting = async (key: string, defaultValue: any) => {
-    const setting = await prisma.systemSettings.findUnique({
-      where: { key },
-    });
-    if (!setting) return defaultValue;
-    
-    if (typeof defaultValue === "boolean") {
-      return setting.value === "true";
-    }
-    if (typeof defaultValue === "number") {
-      return parseInt(setting.value) || defaultValue;
-    }
-    return setting.value;
-  };
+  // Buscar plano TRIAL do banco
+  const trialPlan = await prisma.plan.findUnique({
+    where: { planId: "TRIAL" },
+    select: {
+      maxCredits: true,
+      maxExecutions: true,
+      maxUsers: true,
+    },
+  });
+
+  // Buscar apenas allowTrialWithoutCard de SystemSettings (configuração global)
+  const allowTrialSetting = await prisma.systemSettings.findUnique({
+    where: { key: "allow_trial_without_card" },
+  });
+
+  const allowTrialWithoutCard = allowTrialSetting 
+    ? allowTrialSetting.value === "true" 
+    : true; // Default: permitir trial sem cartão
+
+  // Dias de trial padrão: 3 dias
+  // Os dias são calculados dinamicamente quando a empresa é criada
+  // Os créditos e execuções vêm do plano TRIAL configurado no admin
+  const trialDays = 3;
 
   return {
-    trialDays: await getSetting("trial_days", 3),
-    trialCredits: await getSetting("trial_credits", 50),
-    allowTrialWithoutCard: await getSetting("allow_trial_without_card", true),
+    trialDays, // Padrão: 3 dias
+    trialCredits: trialPlan?.maxCredits || 50, // Do plano TRIAL
+    trialExecutions: trialPlan?.maxExecutions || 50, // Do plano TRIAL
+    trialUsers: trialPlan?.maxUsers || 1, // Do plano TRIAL
+    allowTrialWithoutCard, // Configuração global em SystemSettings
   };
 }
 

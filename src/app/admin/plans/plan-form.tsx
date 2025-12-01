@@ -386,7 +386,7 @@ export function PlanForm({ plan, isNew = false, onSuccess }: PlanFormProps) {
         <Button
           type="submit"
           disabled={isLoading}
-          className="bg-gradient-to-r from-neon-cyan to-neon-magenta text-black font-semibold hover:opacity-90"
+          className="bg-gradient-to-r from-neon-cyan to-neon-magenta text-white dark:text-black font-semibold hover:opacity-90"
         >
           {isLoading ? (isNew ? "Criando..." : "Salvando...") : (isNew ? "Criar Plano" : "Salvar Alterações")}
         </Button>

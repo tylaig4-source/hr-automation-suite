@@ -175,7 +175,7 @@ export function CompanyActions({ company }: CompanyActionsProps) {
             <Button
               onClick={handleUpdatePlan}
               disabled={loading || selectedPlan === company.plan}
-              className="bg-gradient-to-r from-neon-cyan to-neon-magenta text-black"
+              className="bg-gradient-to-r from-neon-cyan to-neon-magenta text-white dark:text-black"
             >
               {loading ? "Salvando..." : "Salvar Alterações"}
             </Button>
