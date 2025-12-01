@@ -74,17 +74,25 @@ export function PlansClient({ plans }: PlansClientProps) {
       const response = await fetch("/api/admin/plans/sync-stripe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}), // Body vazio é válido
       });
+
+      if (!response.ok) {
+        let errorMessage = "Erro ao sincronizar com Stripe";
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch (e) {
+          errorMessage = `Erro ${response.status}: ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
+      }
 
       const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(data.error || "Erro ao sincronizar com Stripe");
-      }
-
       toast({
         title: "Sincronização concluída!",
-        description: data.message,
+        description: data.message || "Planos sincronizados com sucesso",
       });
 
       // Recarregar página para mostrar os IDs atualizados
@@ -92,9 +100,10 @@ export function PlansClient({ plans }: PlansClientProps) {
         window.location.reload();
       }, 1500);
     } catch (error: any) {
+      console.error("[Sync Stripe Frontend] Erro:", error);
       toast({
         title: "Erro ao sincronizar",
-        description: error.message || "Erro ao sincronizar planos com Stripe",
+        description: error.message || "Erro ao sincronizar planos com Stripe. Verifique os logs do servidor.",
         variant: "destructive",
       });
     } finally {
