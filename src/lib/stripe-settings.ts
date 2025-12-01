@@ -11,22 +11,39 @@ export async function getStripeSecretKey(): Promise<string | null> {
     });
 
     if (!setting || !setting.value) {
+      console.log("[Stripe Settings] Nenhuma chave secreta encontrada no banco");
       return null;
     }
+
+    let decryptedKey: string;
 
     // Se estiver criptografado, descriptografa
     if (setting.encrypted) {
       try {
-        return decrypt(setting.value);
+        decryptedKey = decrypt(setting.value);
+        console.log(`[Stripe Settings] Chave descriptografada (tamanho: ${decryptedKey.length})`);
       } catch (error) {
-        console.error("[Stripe] Erro ao descriptografar chave:", error);
+        console.error("[Stripe Settings] Erro ao descriptografar chave:", error);
         return null;
       }
+    } else {
+      decryptedKey = setting.value;
+      console.log(`[Stripe Settings] Chave não criptografada (tamanho: ${decryptedKey.length})`);
     }
 
-    return setting.value;
+    // Validar formato básico
+    if (!decryptedKey.startsWith("sk_test_") && !decryptedKey.startsWith("sk_live_")) {
+      console.error(`[Stripe Settings] AVISO: Chave não começa com sk_test_ ou sk_live_`);
+      console.error(`[Stripe Settings] Primeiros caracteres: ${decryptedKey.substring(0, 20)}`);
+    }
+
+    if (decryptedKey.length < 50) {
+      console.error(`[Stripe Settings] AVISO: Chave muito curta (${decryptedKey.length} caracteres)`);
+    }
+
+    return decryptedKey;
   } catch (error) {
-    console.error("[Stripe] Erro ao buscar chave do banco:", error);
+    console.error("[Stripe Settings] Erro ao buscar chave do banco:", error);
     return null;
   }
 }

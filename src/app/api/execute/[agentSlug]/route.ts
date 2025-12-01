@@ -7,6 +7,9 @@ import { createAICompletion, buildPromptFromTemplate, type AIProvider } from "@/
 import { checkRateLimit, CacheKeys } from "@/lib/redis";
 import { getAgentBySlug } from "../../../../../prompts";
 
+// Forçar renderização dinâmica (usa headers/session)
+export const dynamic = 'force-dynamic';
+
 const executeSchema = z.object({
   inputs: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.undefined()])),
   provider: z.enum(["openai", "gemini", "auto"]).optional(),

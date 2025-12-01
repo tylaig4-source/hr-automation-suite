@@ -117,37 +117,60 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { secretKey, publishableKey, webhookSecret } = stripeSettingsSchema.parse(body);
 
+    // Validar chave secreta antes de salvar
+    if (secretKey) {
+      if (!secretKey.startsWith("sk_test_") && !secretKey.startsWith("sk_live_")) {
+        return NextResponse.json(
+          { error: "Chave secreta inválida. Deve começar com sk_test_ ou sk_live_" },
+          { status: 400 }
+        );
+      }
+      
+      if (secretKey.length < 50) {
+        return NextResponse.json(
+          { error: `Chave secreta muito curta (${secretKey.length} caracteres). Verifique se copiou a chave completa do Stripe Dashboard.` },
+          { status: 400 }
+        );
+      }
+      
+      console.log(`[Stripe Settings API] Salvando chave secreta (tamanho: ${secretKey.length})`);
+    }
+
     // Criptografar valores
-    const encryptedSecretKey = encrypt(secretKey);
-    const encryptedPublishableKey = encrypt(publishableKey);
+    const encryptedSecretKey = secretKey ? encrypt(secretKey) : null;
+    const encryptedPublishableKey = publishableKey ? encrypt(publishableKey) : null;
     const encryptedWebhookSecret = webhookSecret ? encrypt(webhookSecret) : null;
 
     // Salvar ou atualizar usando upsert
-    await prisma.systemSettings.upsert({
-      where: { key: "stripe_secret_key" },
-      create: {
-        key: "stripe_secret_key",
-        value: encryptedSecretKey,
-        encrypted: true,
-      },
-      update: {
-        value: encryptedSecretKey,
-        encrypted: true,
-      },
-    });
+    if (encryptedSecretKey) {
+      await prisma.systemSettings.upsert({
+        where: { key: "stripe_secret_key" },
+        create: {
+          key: "stripe_secret_key",
+          value: encryptedSecretKey,
+          encrypted: true,
+        },
+        update: {
+          value: encryptedSecretKey,
+          encrypted: true,
+        },
+      });
+    }
 
-    await prisma.systemSettings.upsert({
-      where: { key: "stripe_publishable_key" },
-      create: {
-        key: "stripe_publishable_key",
-        value: encryptedPublishableKey,
-        encrypted: true,
-      },
-      update: {
-        value: encryptedPublishableKey,
-        encrypted: true,
-      },
-    });
+    if (encryptedPublishableKey) {
+      await prisma.systemSettings.upsert({
+        where: { key: "stripe_publishable_key" },
+        create: {
+          key: "stripe_publishable_key",
+          value: encryptedPublishableKey,
+          encrypted: true,
+        },
+        update: {
+          value: encryptedPublishableKey,
+          encrypted: true,
+        },
+      });
+    }
 
     if (encryptedWebhookSecret) {
       await prisma.systemSettings.upsert({

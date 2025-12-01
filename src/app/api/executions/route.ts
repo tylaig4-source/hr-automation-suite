@@ -3,6 +3,9 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
+// Forçar renderização dinâmica (usa headers/session)
+export const dynamic = 'force-dynamic';
+
 // GET - Listar execuções do usuário
 export async function GET(request: NextRequest) {
   try {
