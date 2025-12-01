@@ -60,8 +60,8 @@ export default function RegisterPage() {
         const absoluteUrl = getAbsoluteUrl("/login?registered=true");
         window.location.href = absoluteUrl;
       } else {
-        // Redireciona direto para dashboard (onboarding será mostrado lá)
-        const absoluteUrl = getAbsoluteUrl("/dashboard");
+        // Redireciona para onboarding (página obrigatória de seleção de plano)
+        const absoluteUrl = getAbsoluteUrl("/onboarding");
         window.location.href = absoluteUrl;
       }
     } catch (err) {
