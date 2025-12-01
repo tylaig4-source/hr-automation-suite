@@ -22,8 +22,10 @@ export async function getStripeSecretKey(): Promise<string | null> {
       try {
         decryptedKey = decrypt(setting.value);
         console.log(`[Stripe Settings] Chave descriptografada (tamanho: ${decryptedKey.length})`);
-      } catch (error) {
+      } catch (error: any) {
         console.error("[Stripe Settings] Erro ao descriptografar chave:", error);
+        console.error("[Stripe Settings] Possível causa: ENCRYPTION_KEY mudou ou não está configurada corretamente.");
+        console.error("[Stripe Settings] Solução: Reconfigure as chaves do Stripe em /admin/settings");
         return null;
       }
     } else {
@@ -65,8 +67,10 @@ export async function getStripePublishableKey(): Promise<string | null> {
     if (setting.encrypted) {
       try {
         return decrypt(setting.value);
-      } catch (error) {
-        console.error("[Stripe] Erro ao descriptografar chave pública:", error);
+      } catch (error: any) {
+        console.error("[Stripe Settings] Erro ao descriptografar chave pública:", error);
+        console.error("[Stripe Settings] Possível causa: ENCRYPTION_KEY mudou ou não está configurada corretamente.");
+        console.error("[Stripe Settings] Solução: Reconfigure as chaves do Stripe em /admin/settings");
         return null;
       }
     }
@@ -95,8 +99,10 @@ export async function getStripeWebhookSecret(): Promise<string | null> {
     if (setting.encrypted) {
       try {
         return decrypt(setting.value);
-      } catch (error) {
-        console.error("[Stripe] Erro ao descriptografar webhook secret:", error);
+      } catch (error: any) {
+        console.error("[Stripe Settings] Erro ao descriptografar webhook secret:", error);
+        console.error("[Stripe Settings] Possível causa: ENCRYPTION_KEY mudou ou não está configurada corretamente.");
+        console.error("[Stripe Settings] Solução: Reconfigure as chaves do Stripe em /admin/settings");
         return null;
       }
     }

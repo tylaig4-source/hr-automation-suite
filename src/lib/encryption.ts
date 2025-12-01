@@ -1,7 +1,23 @@
 import crypto from "crypto";
 
 // Chave de criptografia - em produção, use uma variável de ambiente
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || crypto.randomBytes(32).toString("hex");
+// IMPORTANTE: Se ENCRYPTION_KEY não estiver definida, uma nova será gerada a cada restart
+// Isso fará com que dados criptografados anteriormente não possam ser descriptografados
+let ENCRYPTION_KEY: string = process.env.ENCRYPTION_KEY || "";
+
+if (!ENCRYPTION_KEY) {
+  console.warn("[Encryption] ⚠️ ENCRYPTION_KEY não definida no .env. Gerando chave temporária.");
+  console.warn("[Encryption] ⚠️ ATENÇÃO: Dados criptografados anteriormente não poderão ser descriptografados!");
+  console.warn("[Encryption] ⚠️ Configure ENCRYPTION_KEY no .env para manter consistência.");
+  ENCRYPTION_KEY = crypto.randomBytes(32).toString("hex");
+}
+
+// Validar tamanho da chave (deve ter 64 caracteres hex = 32 bytes)
+if (ENCRYPTION_KEY.length !== 64) {
+  console.error(`[Encryption] ERRO: ENCRYPTION_KEY deve ter 64 caracteres hexadecimais (32 bytes). Tamanho atual: ${ENCRYPTION_KEY.length}`);
+  throw new Error("ENCRYPTION_KEY inválida. Deve ter 64 caracteres hexadecimais.");
+}
+
 const ALGORITHM = "aes-256-cbc";
 
 /**
