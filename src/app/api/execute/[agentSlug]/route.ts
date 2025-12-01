@@ -79,6 +79,14 @@ export async function POST(
       );
     }
 
+    // Verificar se usuário é ADMIN (acesso ilimitado) - mover para cima
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { role: true }
+    });
+
+    const isAdmin = user?.role === "ADMIN";
+
     // Verificar se empresa tem plano ativo
     const company = await prisma.company.findUnique({
       where: { id: session.user.companyId },
@@ -137,13 +145,32 @@ export async function POST(
       );
     }
 
-    // Verificar se usuário é ADMIN (acesso ilimitado)
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { role: true }
-    });
-
-    const isAdmin = user?.role === "ADMIN";
+    // VALIDAÇÃO DE SEGURANÇA: Se tem assinatura ACTIVE, validar com Stripe
+    // Isso previne manipulação do banco de dados
+    if (hasActiveSubscription && !isAdmin && session.user.companyId) {
+      try {
+        const { validateSubscriptionAccess, shouldValidateWithStripe } = await import("@/lib/subscription-security");
+        
+        // Validar com Stripe (pode ser configurado para validar apenas X% das vezes)
+        if (shouldValidateWithStripe()) {
+          const validation = await validateSubscriptionAccess(session.user.companyId);
+          
+          if (!validation.allowed) {
+            return NextResponse.json(
+              { 
+                error: validation.reason || "Assinatura inválida. Verifique seu método de pagamento.",
+                requiresPayment: true,
+                subscriptionStatus: "INVALID"
+              },
+              { status: 402 } // Payment Required
+            );
+          }
+        }
+      } catch (error: any) {
+        // Se houver erro na validação, logar mas permitir (para não bloquear usuários legítimos)
+        console.error("[Execute] Erro ao validar assinatura:", error);
+      }
+    }
 
     // Verificar se pode executar agentes (bloqueio de trial/assinatura)
     if (!isAdmin && session.user.companyId) {

@@ -98,7 +98,29 @@ export async function canExecuteAgents(companyId: string): Promise<{ allowed: bo
     
     // Apenas ACTIVE permite execução
     if (subStatus === "ACTIVE") {
-      return { allowed: true };
+      // VALIDAÇÃO DE SEGURANÇA: Verificar com Stripe em tempo real
+      // Isso previne manipulação do banco de dados
+      try {
+        const { validateSubscriptionAccess, shouldValidateWithStripe } = await import("./subscription-security");
+        
+        // Validar com Stripe (pode ser configurado para validar apenas X% das vezes)
+        if (shouldValidateWithStripe()) {
+          const validation = await validateSubscriptionAccess(companyId);
+          
+          if (!validation.allowed) {
+            return {
+              allowed: false,
+              reason: validation.reason || "Assinatura inválida",
+            };
+          }
+        }
+        
+        return { allowed: true };
+      } catch (error) {
+        // Se houver erro na validação, permitir por padrão mas logar
+        console.error("[Trial Settings] Erro ao validar assinatura:", error);
+        return { allowed: true };
+      }
     }
     
     // Bloquear para todos os outros status

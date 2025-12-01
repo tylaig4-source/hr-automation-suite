@@ -92,6 +92,15 @@ NEXT_PUBLIC_APP_URL="http://localhost:3000"
 # --------------------------------------------
 RATE_LIMIT_REQUESTS_PER_MINUTE=30
 MAX_TOKENS_PER_REQUEST=4000
+
+# --------------------------------------------
+# SEGURANÇA DE ASSINATURAS (Opcional)
+# --------------------------------------------
+# Taxa de validação de assinaturas com Stripe (0.0 a 1.0)
+# 1.0 = sempre validar (máxima segurança, mais lento)
+# 0.1 = validar 10% das vezes (mais rápido, menos seguro)
+# Padrão: 1.0 (sempre validar)
+SUBSCRIPTION_VALIDATION_RATE=1.0
 ```
 
 ## 📋 Checklist de Configuração
