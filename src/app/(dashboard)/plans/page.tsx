@@ -27,6 +27,18 @@ async function getCompanyData(companyId: string) {
     return company;
 }
 
+async function getPlans() {
+    const plans = await prisma.plan.findMany({
+        where: { 
+            isActive: true,
+            isTrial: false, // Não mostrar trial como opção de upgrade
+        },
+        orderBy: { orderIndex: "asc" },
+    });
+
+    return plans;
+}
+
 export default async function PlansPage() {
     const session = await getServerSession(authOptions);
 
@@ -40,5 +52,7 @@ export default async function PlansPage() {
         redirect("/dashboard");
     }
 
-    return <PlansClient company={company} />;
+    const plans = await getPlans();
+
+    return <PlansClient company={company} plans={plans} />;
 }

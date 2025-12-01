@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import React from "react";
 import { Check, Zap, Shield, Building2, CreditCard, Users, Activity, Calendar, ArrowRight, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -30,54 +31,32 @@ interface Company {
     };
 }
 
-interface PlansClientProps {
-    company: Company;
+interface Plan {
+    id: string;
+    planId: string;
+    name: string;
+    description: string | null;
+    monthlyPrice: number | null;
+    yearlyPrice: number | null;
+    yearlyTotal: number | null;
+    features: any; // JSON array
+    isPopular: boolean;
+    isEnterprise: boolean;
 }
 
-const plans = [
-    {
-        id: "PROFESSIONAL",
-        name: "Professional",
-        monthlyPrice: 597,
-        yearlyPrice: 497,
-        totalYearly: 5964,
-        description: "Para PMEs e times de RH",
-        features: [
-            "Até 5 usuários",
-            "500 requisições por mês",
-            "Todos os 34 agentes de IA",
-            "Todas as 8 categorias",
-            "Exportação PDF e Word",
-            "Histórico de 12 meses",
-            "Suporte por chat e e-mail",
-            "Templates ilimitados",
-        ],
-        icon: Zap,
-        color: "#ff00ff",
-        popular: true,
-    },
-    {
-        id: "ENTERPRISE",
-        name: "Enterprise",
-        monthlyPrice: null,
-        yearlyPrice: null,
-        totalYearly: null,
-        description: "Para grandes empresas e multinacionais",
-        features: [
-            "Usuários ilimitados",
-            "Requisições ilimitadas",
-            "Agentes customizados para sua empresa",
-            "Integrações (ATS, HRIS, ERP)",
-            "SSO e autenticação corporativa",
-            "API dedicada",
-            "Gerente de conta exclusivo",
-            "SLA garantido + Treinamento",
-        ],
-        icon: Building2,
-        color: "#8b5cf6",
-        popular: false,
-    },
-];
+interface PlanForCheckout {
+    id: string;
+    name: string;
+    monthlyPrice: number | null;
+    yearlyPrice: number | null;
+    totalYearly: number | null;
+    features: string[];
+}
+
+interface PlansClientProps {
+    company: Company;
+    plans: Plan[];
+}
 
 const statusLabels: Record<string, { label: string; color: string }> = {
     ACTIVE: { label: "Ativo", color: "bg-green-500/20 text-green-400 border-green-500/30" },
@@ -86,10 +65,31 @@ const statusLabels: Record<string, { label: string; color: string }> = {
     CANCELED: { label: "Cancelado", color: "bg-gray-500/20 text-gray-400 border-gray-500/30" },
 };
 
-export function PlansClient({ company }: PlansClientProps) {
+export function PlansClient({ company, plans: dbPlans }: PlansClientProps) {
     const router = useRouter();
     const [checkoutOpen, setCheckoutOpen] = useState(false);
-    const [selectedPlan, setSelectedPlan] = useState<typeof plans[0] | null>(null);
+    const [selectedPlan, setSelectedPlan] = useState<PlanForCheckout | null>(null);
+
+    // Converter planos do banco para formato esperado
+    const plans = dbPlans.map((plan) => {
+        const features = Array.isArray(plan.features) ? plan.features : [];
+        const Icon = plan.isEnterprise ? Building2 : Zap;
+        const color = plan.isEnterprise ? "#8b5cf6" : "#ff00ff";
+        
+        return {
+            id: plan.planId,
+            name: plan.name,
+            monthlyPrice: plan.monthlyPrice,
+            yearlyPrice: plan.yearlyPrice,
+            totalYearly: plan.yearlyTotal,
+            description: plan.description || "",
+            features,
+            icon: Icon,
+            color,
+            popular: plan.isPopular,
+            isEnterprise: plan.isEnterprise,
+        };
+    });
 
     const handleSelectPlan = (plan: typeof plans[0]) => {
         if (plan.id === "ENTERPRISE") {
@@ -97,7 +97,15 @@ export function PlansClient({ company }: PlansClientProps) {
             window.location.href = "mailto:contato@meusuper.app?subject=Interesse%20no%20plano%20Enterprise";
             return;
         }
-        setSelectedPlan(plan);
+        // Converter para formato esperado pelo CheckoutModal
+        setSelectedPlan({
+            id: plan.id,
+            name: plan.name,
+            monthlyPrice: plan.monthlyPrice,
+            yearlyPrice: plan.yearlyPrice,
+            totalYearly: plan.totalYearly,
+            features: plan.features,
+        });
         setCheckoutOpen(true);
     };
 
@@ -233,11 +241,22 @@ export function PlansClient({ company }: PlansClientProps) {
                                         <div className="flex items-baseline gap-1">
                                             <span className="text-sm text-gray-400">R$</span>
                                             <span className="text-4xl font-display font-bold" style={{ color: plan.color }}>
-                                                {plan.yearlyPrice}
+                                                {plan.yearlyPrice.toLocaleString("pt-BR")}
                                             </span>
                                             <span className="text-gray-400">/mês</span>
                                         </div>
                                         <p className="text-sm text-gray-500 mt-1">no plano anual (12x sem juros)</p>
+                                    </div>
+                                ) : plan.monthlyPrice ? (
+                                    <div>
+                                        <p className="text-sm text-gray-500 mb-1">A partir de</p>
+                                        <div className="flex items-baseline gap-1">
+                                            <span className="text-sm text-gray-400">R$</span>
+                                            <span className="text-4xl font-display font-bold" style={{ color: plan.color }}>
+                                                {plan.monthlyPrice.toLocaleString("pt-BR")}
+                                            </span>
+                                            <span className="text-gray-400">/mês</span>
+                                        </div>
                                     </div>
                                 ) : (
                                     <div>
@@ -249,7 +268,7 @@ export function PlansClient({ company }: PlansClientProps) {
 
                             {/* Features */}
                             <ul className="space-y-3 mb-6">
-                                {plan.features.map((feature) => (
+                                {plan.features.map((feature: string) => (
                                     <li key={feature} className="flex items-center gap-3">
                                         <div
                                             className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
@@ -307,51 +326,77 @@ export function PlansClient({ company }: PlansClientProps) {
                             </tr>
                         </thead>
                         <tbody>
-                            <tr className="border-b border-white/5 bg-green-500/5">
-                                <td className="p-4">
-                                    <div className="flex items-center gap-3">
-                                        <span className="text-xl">💳</span>
-                                        <div>
-                                            <p className="font-medium text-white">Anual no Cartão</p>
-                                            <p className="text-xs text-gray-500">(12x)</p>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td className="text-center p-4 text-white font-semibold">R$ 497</td>
-                                <td className="text-center p-4 text-white">R$ 5.964</td>
-                                <td className="text-center p-4">
-                                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-green-500/20 text-green-400">
-                                        R$ 1.200 ✓
-                                    </span>
-                                </td>
-                            </tr>
-                            <tr className="border-b border-white/5">
-                                <td className="p-4">
-                                    <div className="flex items-center gap-3">
-                                        <span className="text-xl">🔄</span>
-                                        <div>
-                                            <p className="font-medium text-white">Cartão Recorrente</p>
-                                            <p className="text-xs text-gray-500">(mensal)</p>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td className="text-center p-4 text-white">R$ 597</td>
-                                <td className="text-center p-4 text-gray-400">R$ 7.164</td>
-                                <td className="text-center p-4 text-gray-500">-</td>
-                            </tr>
-                            <tr>
-                                <td className="p-4">
-                                    <div className="flex items-center gap-3">
-                                        <span className="text-xl">📱</span>
-                                        <div>
-                                            <p className="font-medium text-white">Mensal no Pix</p>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td className="text-center p-4 text-white">R$ 597</td>
-                                <td className="text-center p-4 text-gray-400">R$ 7.164</td>
-                                <td className="text-center p-4 text-gray-500">-</td>
-                            </tr>
+                            {plans.map((plan) => {
+                                if (!plan.monthlyPrice || !plan.yearlyPrice) return null;
+                                
+                                const monthlyTotal = plan.monthlyPrice * 12;
+                                const yearlyTotal = plan.totalYearly || (plan.yearlyPrice * 12);
+                                const savings = monthlyTotal - yearlyTotal;
+
+                                return (
+                                    <React.Fragment key={plan.id}>
+                                        <tr className="border-b border-white/5 bg-green-500/5">
+                                            <td className="p-4">
+                                                <div className="flex items-center gap-3">
+                                                    <span className="text-xl">💳</span>
+                                                    <div>
+                                                        <p className="font-medium text-white">Anual no Cartão - {plan.name}</p>
+                                                        <p className="text-xs text-gray-500">(12x)</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="text-center p-4 text-white font-semibold">
+                                                R$ {plan.yearlyPrice.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                            </td>
+                                            <td className="text-center p-4 text-white">
+                                                R$ {yearlyTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                            </td>
+                                            <td className="text-center p-4">
+                                                {savings > 0 && (
+                                                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-green-500/20 text-green-400">
+                                                        R$ {savings.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} ✓
+                                                    </span>
+                                                )}
+                                            </td>
+                                        </tr>
+                                        <tr className="border-b border-white/5">
+                                            <td className="p-4">
+                                                <div className="flex items-center gap-3">
+                                                    <span className="text-xl">🔄</span>
+                                                    <div>
+                                                        <p className="font-medium text-white">Cartão Recorrente - {plan.name}</p>
+                                                        <p className="text-xs text-gray-500">(mensal)</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="text-center p-4 text-white">
+                                                R$ {plan.monthlyPrice.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                            </td>
+                                            <td className="text-center p-4 text-gray-400">
+                                                R$ {monthlyTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                            </td>
+                                            <td className="text-center p-4 text-gray-500">-</td>
+                                        </tr>
+                                        <tr>
+                                            <td className="p-4">
+                                                <div className="flex items-center gap-3">
+                                                    <span className="text-xl">📱</span>
+                                                    <div>
+                                                        <p className="font-medium text-white">Mensal no Pix - {plan.name}</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="text-center p-4 text-white">
+                                                R$ {plan.monthlyPrice.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                            </td>
+                                            <td className="text-center p-4 text-gray-400">
+                                                R$ {monthlyTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                            </td>
+                                            <td className="text-center p-4 text-gray-500">-</td>
+                                        </tr>
+                                    </React.Fragment>
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>

@@ -5,17 +5,38 @@
  */
 
 import Stripe from "stripe";
+import { getStripeSecretKey } from "@/lib/stripe-settings";
 
 // Lazy initialization - só cria a instância quando necessário
 let stripeInstance: Stripe | null = null;
+let stripeSecretKey: string | null = null;
 
-function getStripe(): Stripe {
-  if (!stripeInstance) {
-    const secretKey = process.env.STRIPE_SECRET_KEY;
+/**
+ * Invalida o cache do Stripe (força recriação na próxima chamada)
+ */
+export function invalidateStripeCache() {
+  stripeInstance = null;
+  stripeSecretKey = null;
+}
+
+
+/**
+ * Inicializa a instância do Stripe com a chave do banco ou env (fallback)
+ */
+async function getStripe(): Promise<Stripe> {
+  if (!stripeInstance || stripeSecretKey === null) {
+    // Tenta buscar do banco primeiro
+    const dbKey = await getStripeSecretKey();
+    
+    // Fallback para env (para compatibilidade)
+    const envKey = process.env.STRIPE_SECRET_KEY;
+    
+    const secretKey = dbKey || envKey;
     
     // Durante o build, sempre permite usar uma chave dummy para não quebrar
-    // Em runtime, as funções devem verificar se a chave está configurada
     const keyToUse = secretKey || "sk_test_dummy";
+    
+    stripeSecretKey = keyToUse;
     
     stripeInstance = new Stripe(keyToUse, {
       apiVersion: "2025-11-17.clover",
@@ -27,16 +48,22 @@ function getStripe(): Stripe {
 }
 
 // Helper para verificar se Stripe está configurado
-export function isStripeConfigured(): boolean {
-  return !!process.env.STRIPE_SECRET_KEY && process.env.STRIPE_SECRET_KEY !== "sk_test_dummy";
+export async function isStripeConfigured(): Promise<boolean> {
+  const dbKey = await getStripeSecretKey();
+  const envKey = process.env.STRIPE_SECRET_KEY;
+  
+  const secretKey = dbKey || envKey;
+  return !!secretKey && secretKey !== "sk_test_dummy";
 }
 
 // Exporta uma função getter ao invés de instância direta
-export const stripe = new Proxy({} as Stripe, {
-  get(_target, prop) {
-    return getStripe()[prop as keyof Stripe];
-  },
-});
+// Nota: Agora getStripe é async, então precisamos usar uma abordagem diferente
+export async function getStripeInstance(): Promise<Stripe> {
+  return await getStripe();
+}
+
+// Para compatibilidade com código existente, criamos um proxy que funciona de forma assíncrona
+// Mas isso pode causar problemas. Vamos atualizar as funções para usar getStripeInstance() diretamente.
 
 // ============================================
 // Types
@@ -124,6 +151,7 @@ export async function createCustomer(data: {
   phone?: string;
   metadata?: Record<string, string>;
 }): Promise<Stripe.Customer> {
+  const stripe = await getStripeInstance();
   return await stripe.customers.create({
     email: data.email,
     name: data.name,
@@ -133,6 +161,7 @@ export async function createCustomer(data: {
 }
 
 export async function getCustomer(customerId: string): Promise<Stripe.Customer> {
+  const stripe = await getStripeInstance();
   return await stripe.customers.retrieve(customerId) as Stripe.Customer;
 }
 
@@ -145,10 +174,12 @@ export async function updateCustomer(
     metadata: Record<string, string>;
   }>
 ): Promise<Stripe.Customer> {
+  const stripe = await getStripeInstance();
   return await stripe.customers.update(customerId, data);
 }
 
 export async function findCustomerByEmail(email: string): Promise<Stripe.Customer | null> {
+  const stripe = await getStripeInstance();
   const customers = await stripe.customers.list({
     email,
     limit: 1,
@@ -178,10 +209,12 @@ export async function createSubscription(data: {
     subscriptionData.default_payment_method = data.paymentMethodId;
   }
 
+  const stripe = await getStripeInstance();
   return await stripe.subscriptions.create(subscriptionData);
 }
 
 export async function getSubscription(subscriptionId: string): Promise<Stripe.Subscription> {
+  const stripe = await getStripeInstance();
   return await stripe.subscriptions.retrieve(subscriptionId, {
     expand: ["latest_invoice.payment_intent"],
   });
@@ -218,6 +251,7 @@ export async function updateSubscription(
     updateData.metadata = data.metadata;
   }
 
+  const stripe = await getStripeInstance();
   return await stripe.subscriptions.update(subscriptionId, updateData);
 }
 
@@ -225,6 +259,7 @@ export async function cancelSubscription(
   subscriptionId: string,
   immediately: boolean = false
 ): Promise<Stripe.Subscription> {
+  const stripe = await getStripeInstance();
   if (immediately) {
     return await stripe.subscriptions.cancel(subscriptionId);
   } else {
@@ -245,6 +280,7 @@ export async function createPaymentIntent(data: {
   paymentMethodTypes?: string[];
   metadata?: Record<string, string>;
 }): Promise<Stripe.PaymentIntent> {
+  const stripe = await getStripeInstance();
   return await stripe.paymentIntents.create({
     amount: data.amount,
     currency: data.currency || "brl",
@@ -255,6 +291,7 @@ export async function createPaymentIntent(data: {
 }
 
 export async function getPaymentIntent(paymentIntentId: string): Promise<Stripe.PaymentIntent> {
+  const stripe = await getStripeInstance();
   return await stripe.paymentIntents.retrieve(paymentIntentId);
 }
 
@@ -268,6 +305,7 @@ export async function confirmPaymentIntent(
     params.payment_method = paymentMethodId;
   }
 
+  const stripe = await getStripeInstance();
   return await stripe.paymentIntents.confirm(paymentIntentId, params);
 }
 
@@ -282,6 +320,7 @@ export async function createPixPayment(data: {
 }): Promise<StripePixPayment> {
   // Criar PaymentIntent com PIX
   // O Stripe automaticamente gera o QR Code quando payment_method_types inclui "pix"
+  const stripe = await getStripeInstance();
   const paymentIntent = await stripe.paymentIntents.create({
     amount: data.amount,
     currency: "brl",
@@ -334,22 +373,137 @@ export async function createPrice(data: {
     priceData.product = data.productId || "prod_default";
   }
 
+  const stripe = await getStripeInstance();
   return await stripe.prices.create(priceData);
 }
 
 export async function getPrice(priceId: string): Promise<Stripe.Price> {
+  const stripe = await getStripeInstance();
   return await stripe.prices.retrieve(priceId);
+}
+
+export async function createProduct(data: {
+  name: string;
+  description?: string;
+  metadata?: Record<string, string>;
+}): Promise<Stripe.Product> {
+  const stripe = await getStripeInstance();
+  return await stripe.products.create({
+    name: data.name,
+    description: data.description,
+    metadata: data.metadata,
+  });
+}
+
+export async function findOrCreateProduct(data: {
+  name: string;
+  description?: string;
+  metadata?: Record<string, string>;
+}): Promise<Stripe.Product> {
+  // Buscar produto existente por nome
+  const stripe = await getStripeInstance();
+  const products = await stripe.products.list({
+    limit: 100,
+  });
+
+  const existing = products.data.find(
+    (p) => p.name === data.name && p.active
+  );
+
+  if (existing) {
+    return existing;
+  }
+
+  // Criar novo produto
+  return await createProduct(data);
+}
+
+/**
+ * Sincroniza um plano do banco de dados com o Stripe
+ * Cria produto e prices (mensal e anual) se necessário
+ */
+export async function syncPlanToStripe(data: {
+  planId: string;
+  name: string;
+  description?: string;
+  monthlyPrice: number | null; // em R$
+  yearlyPrice: number | null; // em R$ por mês
+  yearlyTotal: number | null; // em R$ total anual
+}): Promise<{
+  productId: string;
+  monthlyPriceId: string | null;
+  yearlyPriceId: string | null;
+}> {
+  const configured = await isStripeConfigured();
+  if (!configured) {
+    throw new Error("Stripe não está configurado");
+  }
+
+  // Criar ou buscar produto
+  const product = await findOrCreateProduct({
+    name: data.name,
+    description: data.description || undefined,
+    metadata: {
+      planId: data.planId,
+    },
+  });
+
+  let monthlyPriceId: string | null = null;
+  let yearlyPriceId: string | null = null;
+
+  // Criar price mensal se tiver preço
+  if (data.monthlyPrice !== null && data.monthlyPrice > 0) {
+    const stripe = await getStripeInstance();
+    const monthlyPrice = await stripe.prices.create({
+      product: product.id,
+      unit_amount: Math.round(data.monthlyPrice * 100), // Converter para centavos
+      currency: "brl",
+      recurring: {
+        interval: "month",
+      },
+      metadata: {
+        planId: data.planId,
+        billingCycle: "MONTHLY",
+      },
+    });
+    monthlyPriceId = monthlyPrice.id;
+  }
+
+  // Criar price anual se tiver preço
+  if (data.yearlyPrice !== null && data.yearlyPrice > 0) {
+    const stripe = await getStripeInstance();
+    const yearlyPrice = await stripe.prices.create({
+      product: product.id,
+      unit_amount: Math.round(data.yearlyPrice * 100), // Converter para centavos
+      currency: "brl",
+      recurring: {
+        interval: "year",
+      },
+      metadata: {
+        planId: data.planId,
+        billingCycle: "YEARLY",
+      },
+    });
+    yearlyPriceId = yearlyPrice.id;
+  }
+
+  return {
+    productId: product.id,
+    monthlyPriceId,
+    yearlyPriceId,
+  };
 }
 
 // ============================================
 // Webhook Verification
 // ============================================
 
-export function verifyWebhookSignature(
+export async function verifyWebhookSignature(
   payload: string | Buffer,
   signature: string,
   secret: string
-): Stripe.Event {
+): Promise<Stripe.Event> {
+  const stripe = await getStripeInstance();
   return stripe.webhooks.constructEvent(payload, signature, secret);
 }
 
@@ -359,11 +513,12 @@ export function verifyWebhookSignature(
 
 export async function testConnection(): Promise<boolean> {
   try {
-    // Verifica se a chave está configurada (não é dummy)
-    if (!process.env.STRIPE_SECRET_KEY || process.env.STRIPE_SECRET_KEY === "sk_test_dummy") {
+    const isConfigured = await isStripeConfigured();
+    if (!isConfigured) {
       return false;
     }
     
+    const stripe = await getStripeInstance();
     await stripe.customers.list({ limit: 1 });
     return true;
   } catch {

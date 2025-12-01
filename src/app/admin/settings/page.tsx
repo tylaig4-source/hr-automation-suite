@@ -36,15 +36,14 @@ export default async function AdminSettingsPage() {
     redirect("/dashboard");
   }
 
-  // Get current settings from env (in production, these would come from database)
+  // Settings agora são carregados do banco via componente
+  const webhookUrl = process.env.NEXT_PUBLIC_APP_URL 
+    ? `${process.env.NEXT_PUBLIC_APP_URL}/api/stripe/webhook`
+    : "https://seu-dominio.com/api/stripe/webhook";
+  
   const settings = {
-    stripeSecretKey: process.env.STRIPE_SECRET_KEY ? "••••••••" + process.env.STRIPE_SECRET_KEY.slice(-4) : "",
-    stripePublishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ? "••••••••" + process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY.slice(-4) : "",
-    stripeEnvironment: process.env.STRIPE_SECRET_KEY?.includes("sk_live") ? "production" : "test",
-    webhookUrl: process.env.NEXT_PUBLIC_APP_URL 
-      ? `${process.env.NEXT_PUBLIC_APP_URL}/api/stripe/webhook`
-      : "https://seu-dominio.com/api/stripe/webhook",
-    webhookSecret: process.env.STRIPE_WEBHOOK_SECRET ? "Configurado" : "Não configurado",
+    webhookUrl,
+    webhookSecret: "Configurado no banco", // Placeholder
   };
 
   return (
@@ -71,7 +70,7 @@ export default async function AdminSettingsPage() {
             </div>
           </div>
           <div className="p-6">
-            <ApiSettings settings={settings} />
+            <ApiSettings />
           </div>
         </div>
 
@@ -110,8 +109,8 @@ export default async function AdminSettingsPage() {
               </div>
               <div className="p-4 rounded-xl bg-white/5 border border-white/10">
                 <p className="text-sm text-gray-400 mb-1">Ambiente</p>
-                <p className={`font-medium ${settings.stripeEnvironment === "production" ? "text-green-400" : "text-amber-400"}`}>
-                  {settings.stripeEnvironment === "production" ? "Produção" : "Teste"}
+                <p className="text-gray-300 font-medium">
+                  Configurado no painel
                 </p>
               </div>
               <div className="p-4 rounded-xl bg-white/5 border border-white/10">
