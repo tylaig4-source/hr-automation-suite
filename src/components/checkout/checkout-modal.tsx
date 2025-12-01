@@ -28,17 +28,18 @@ interface CheckoutModalProps {
   onClose: () => void;
   selectedPlan: Plan | null;
   onSuccess?: () => void;
+  defaultBillingCycle?: "MONTHLY" | "YEARLY"; // Ciclo de cobrança padrão
 }
 
 type Step = "customer" | "payment" | "processing" | "success";
 type BillingCycle = "MONTHLY" | "YEARLY";
 type PaymentMethod = "PIX" | "BOLETO" | "CREDIT_CARD";
 
-export function CheckoutModal({ isOpen, onClose, selectedPlan, onSuccess }: CheckoutModalProps) {
+export function CheckoutModal({ isOpen, onClose, selectedPlan, onSuccess, defaultBillingCycle = "YEARLY" }: CheckoutModalProps) {
   const { toast } = useToast();
   const [step, setStep] = useState<Step>("customer");
   const [loading, setLoading] = useState(false);
-  const [billingCycle, setBillingCycle] = useState<BillingCycle>("YEARLY");
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>(defaultBillingCycle);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("CREDIT_CARD");
   
   // Customer info
@@ -134,33 +135,55 @@ export function CheckoutModal({ isOpen, onClose, selectedPlan, onSuccess }: Chec
     setLoading(true);
 
     try {
-      const body: Record<string, unknown> = {
+      // Preparar dados para envio
+      const requestBody: {
+        planId: string;
+        billingCycle: BillingCycle;
+        creditCard?: {
+          number: string;
+          expiryMonth: string;
+          expiryYear: string;
+          ccv: string;
+        };
+        creditCardHolderInfo?: {
+          name: string;
+          email: string;
+          phone?: string;
+          postalCode?: string;
+          address?: string;
+          addressNumber?: string;
+          city?: string;
+          state?: string;
+        };
+      } = {
         planId: plan.id,
-        billingType: paymentMethod,
         billingCycle,
-        value: billingCycle === "YEARLY" ? totalPrice : price,
       };
 
+      // Se for cartão de crédito, incluir dados do cartão
       if (paymentMethod === "CREDIT_CARD") {
-        body.creditCard = cardData;
-        body.creditCardHolderInfo = {
+        requestBody.creditCard = {
+          number: cardData.number,
+          expiryMonth: cardData.expiryMonth,
+          expiryYear: cardData.expiryYear,
+          ccv: cardData.ccv,
+        };
+        requestBody.creditCardHolderInfo = {
           name: cardData.holderName,
           email: customerData.email,
-          cpfCnpj: customerData.cpfCnpj.replace(/\D/g, ""),
-          postalCode: customerData.postalCode?.replace(/\D/g, ""),
-          addressNumber: customerData.addressNumber,
           phone: customerData.phone?.replace(/\D/g, ""),
+          postalCode: customerData.postalCode?.replace(/\D/g, ""),
+          address: customerData.address,
+          addressNumber: customerData.addressNumber,
+          city: customerData.city,
+          state: customerData.state,
         };
       }
 
       const response = await fetch("/api/stripe/subscriptions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          planId: plan.id,
-          billingCycle,
-          paymentMethodId: paymentMethod === "CREDIT_CARD" ? "card" : undefined,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       const data = await response.json();

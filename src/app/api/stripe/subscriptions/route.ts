@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import {
   createSubscription,
   cancelSubscription,
+  createAndAttachPaymentMethod,
 } from "@/lib/stripe";
 import { addMonths, addYears } from "date-fns";
 
@@ -21,7 +22,13 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { planId, billingCycle = "MONTHLY", paymentMethodId } = body;
+    const { 
+      planId, 
+      billingCycle = "MONTHLY", 
+      paymentMethodId,
+      creditCard,
+      creditCardHolderInfo,
+    } = body;
 
     if (!planId) {
       return NextResponse.json(
@@ -103,11 +110,66 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Se tiver dados do cartão, criar e anexar PaymentMethod
+    let finalPaymentMethodId = paymentMethodId;
+    
+    if (creditCard && creditCard.number && creditCard.expiryMonth && creditCard.expiryYear && creditCard.ccv) {
+      try {
+        const paymentMethod = await createAndAttachPaymentMethod({
+          customerId: company.stripeCustomerId,
+          card: {
+            number: creditCard.number.replace(/\s/g, ""), // Remove espaços
+            exp_month: parseInt(creditCard.expiryMonth, 10),
+            exp_year: parseInt(creditCard.expiryYear, 10),
+            cvc: creditCard.ccv,
+          },
+          billing_details: creditCardHolderInfo ? {
+            name: creditCardHolderInfo.name,
+            email: creditCardHolderInfo.email,
+            phone: creditCardHolderInfo.phone,
+            address: (creditCardHolderInfo.address || creditCardHolderInfo.postalCode) ? {
+              line1: creditCardHolderInfo.address 
+                ? `${creditCardHolderInfo.address}${creditCardHolderInfo.addressNumber ? `, ${creditCardHolderInfo.addressNumber}` : ""}`
+                : undefined,
+              postal_code: creditCardHolderInfo.postalCode,
+              city: creditCardHolderInfo.city,
+              state: creditCardHolderInfo.state,
+              country: "BR",
+            } : undefined,
+          } : undefined,
+          setAsDefault: true, // Definir como método de pagamento padrão
+        });
+        
+        finalPaymentMethodId = paymentMethod.id;
+      } catch (error: any) {
+        console.error("Erro ao criar PaymentMethod:", error);
+        return NextResponse.json(
+          { 
+            error: error.message || "Erro ao processar dados do cartão. Verifique os dados e tente novamente.",
+            details: error.type === "StripeCardError" ? error.message : undefined,
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Se não tiver PaymentMethod e for necessário, retornar erro
+    if (!finalPaymentMethodId) {
+      return NextResponse.json(
+        { error: "Método de pagamento é obrigatório. Por favor, forneça os dados do cartão ou um PaymentMethod ID válido." },
+        { status: 400 }
+      );
+    }
+
+    // Aplicar trial de 7 dias para planos mensais (não aplicar para anuais)
+    const trialPeriodDays = billingCycle === "MONTHLY" ? 7 : undefined;
+
     // Criar subscription no Stripe
     const subscription = await createSubscription({
       customerId: company.stripeCustomerId,
       priceId,
-      paymentMethodId,
+      paymentMethodId: finalPaymentMethodId,
+      trialPeriodDays,
       metadata: {
         companyId: company.id,
         planId,
@@ -116,9 +178,17 @@ export async function POST(request: NextRequest) {
     });
 
     // Calcular próxima data de vencimento
-    const nextDueDate = billingCycle === "YEARLY"
-      ? addYears(new Date(), 1)
-      : addMonths(new Date(), 1);
+    // Se tiver trial, a próxima cobrança será após o trial + período
+    let nextDueDate: Date;
+    if (trialPeriodDays) {
+      // Trial de 7 dias + 1 mês
+      nextDueDate = addMonths(new Date(), 1);
+      nextDueDate.setDate(nextDueDate.getDate() + trialPeriodDays);
+    } else if (billingCycle === "YEARLY") {
+      nextDueDate = addYears(new Date(), 1);
+    } else {
+      nextDueDate = addMonths(new Date(), 1);
+    }
 
     // Criar ou atualizar subscription no banco
     await prisma.subscription.upsert({

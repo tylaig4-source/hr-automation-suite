@@ -116,8 +116,17 @@ export function PlanSelectionModal({ isOpen, plans }: PlanSelectionModalProps) {
   const paidPlans = availablePlans.filter(p => !p.isTrial);
 
   return (
-    <Dialog open={isOpen} onOpenChange={() => {}}>
-      <DialogContent className="max-w-5xl p-0 overflow-hidden bg-[#0a0a0f] border-white/10 max-h-[90vh] overflow-y-auto">
+    <>
+      {/* Overlay com blur - impede interação com fundo */}
+      {isOpen && (
+        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md" />
+      )}
+      <Dialog open={isOpen} onOpenChange={() => {}}>
+        <DialogContent 
+          className="max-w-5xl p-0 overflow-hidden bg-[#0a0a0f] border-white/10 max-h-[90vh] overflow-y-auto z-[101] [&>button]:hidden"
+          onInteractOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
+        >
         <DialogHeader className="p-6 border-b border-white/10">
           <DialogTitle className="text-2xl flex items-center gap-2 text-white">
             <CreditCard className="w-6 h-6 text-neon-cyan" />
@@ -316,6 +325,7 @@ export function PlanSelectionModal({ isOpen, plans }: PlanSelectionModalProps) {
         </div>
       </DialogContent>
     </Dialog>
+    </>
   );
 }
 

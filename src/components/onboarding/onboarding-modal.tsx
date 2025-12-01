@@ -172,8 +172,17 @@ export function OnboardingModal({ isOpen, onComplete, isTrialing = false, trialD
   const Icon = currentStepData.icon;
 
   return (
-    <Dialog open={isOpen} onOpenChange={() => {}}>
-      <DialogContent className="max-w-2xl p-0 overflow-hidden bg-[#0a0a0f] border-white/10">
+    <>
+      {/* Overlay com blur - impede interação com fundo */}
+      {isOpen && (
+        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md" />
+      )}
+      <Dialog open={isOpen} onOpenChange={() => {}}>
+        <DialogContent 
+          className="max-w-2xl p-0 overflow-hidden bg-[#0a0a0f] border-white/10 z-[101] [&>button]:hidden"
+          onInteractOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
+        >
         {/* Header */}
         <div className="relative bg-gradient-to-r from-neon-cyan/10 via-neon-magenta/10 to-neon-purple/10 p-6 border-b border-white/10">
           <DialogHeader>
@@ -233,14 +242,7 @@ export function OnboardingModal({ isOpen, onComplete, isTrialing = false, trialD
           )}
 
           {/* Actions */}
-          <div className="flex items-center justify-between mt-8">
-            <Button
-              variant="ghost"
-              onClick={handleSkip}
-              className="text-gray-400 hover:text-white"
-            >
-              Pular
-            </Button>
+          <div className="flex items-center justify-end mt-8">
             <div className="flex gap-3">
               {currentStep > 0 && (
                 <Button
@@ -273,6 +275,7 @@ export function OnboardingModal({ isOpen, onComplete, isTrialing = false, trialD
         </div>
       </DialogContent>
     </Dialog>
+    </>
   );
 }
 
