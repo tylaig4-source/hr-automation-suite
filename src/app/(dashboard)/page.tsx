@@ -19,7 +19,6 @@ import { categories, getAgentsByCategory } from "../../../prompts";
 import { Button } from "@/components/ui/button";
 import { OnboardingWrapper } from "@/components/dashboard/onboarding-wrapper";
 import { TrialUpgradeAlert } from "@/components/dashboard/trial-upgrade-alert";
-import { PlanSelectionWrapper } from "@/components/dashboard/plan-selection-wrapper";
 import { PaymentAlert } from "@/components/dashboard/payment-alert";
 import { UpgradeSuggestionAlert } from "@/components/dashboard/upgrade-suggestion-alert";
 import { getTrialSettings } from "@/lib/trial-settings";
@@ -214,25 +213,8 @@ export default async function DashboardPage() {
     }
   }
 
-  // Buscar planos para o modal de seleção
-  const plans = await prisma.plan.findMany({
-    where: { isActive: true },
-    orderBy: { orderIndex: "asc" },
-  });
-
-  // Determinar se deve mostrar o modal de seleção de plano
-  // Mostrar se:
-  // 1. Não tem companyId (nem na sessão nem no banco), OU
-  // 2. Tem companyId mas não tem plano ativo (sem trial ativo, sem subscription ativa, sem limites configurados)
-  const shouldShowPlanSelection = !finalCompanyId || !companyInfo.hasActivePlan;
-
   return (
     <div className="space-y-8">
-      {/* Modal de Seleção de Plano - Mostrar se não tem plano ativo */}
-      {shouldShowPlanSelection && (
-        <PlanSelectionWrapper plans={plans} />
-      )}
-
       {/* Onboarding normal - apenas se tiver plano ativo */}
       {companyInfo.hasActivePlan && (
         <OnboardingWrapper
