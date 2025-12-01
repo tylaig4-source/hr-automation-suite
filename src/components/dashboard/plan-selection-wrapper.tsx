@@ -27,25 +27,21 @@ interface PlanSelectionWrapperProps {
 }
 
 export function PlanSelectionWrapper({ plans }: PlanSelectionWrapperProps) {
-  const [showModal, setShowModal] = useState(false);
+  const [showModal, setShowModal] = useState(true); // Iniciar como true
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     // Garantir que o componente está montado no cliente
     setMounted(true);
-    // Mostrar modal imediatamente quando montar
-    // O servidor já verificou que não tem plano ativo antes de renderizar este componente
+    // Modal já está como true, apenas garantir que está montado
     setShowModal(true);
   }, []);
 
-  // Não renderizar nada até montar no cliente (evitar hydration mismatch)
-  if (!mounted) {
-    return null;
-  }
-
+  // Renderizar o modal mesmo antes de montar completamente para evitar delay visual
+  // O Dialog do shadcn/ui lida bem com isso
   return (
     <PlanSelectionModal
-      isOpen={showModal}
+      isOpen={showModal && mounted ? true : false}
       plans={plans}
     />
   );
