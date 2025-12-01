@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 
 const planSchema = z.object({
+  planId: z.string().min(1, "Plan ID é obrigatório"),
   name: z.string().min(1, "Nome é obrigatório"),
   description: z.string().optional(),
   monthlyPrice: z.number().nullable(),
@@ -55,10 +56,11 @@ interface Plan {
 
 interface PlanFormProps {
   plan: Plan;
+  isNew?: boolean;
   onSuccess: () => void;
 }
 
-export function PlanForm({ plan, onSuccess }: PlanFormProps) {
+export function PlanForm({ plan, isNew = false, onSuccess }: PlanFormProps) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [features, setFeatures] = useState<string[]>(
@@ -75,7 +77,8 @@ export function PlanForm({ plan, onSuccess }: PlanFormProps) {
   } = useForm<PlanFormData>({
     resolver: zodResolver(planSchema),
     defaultValues: {
-      name: plan.name,
+      planId: plan.planId || "",
+      name: plan.name || "",
       description: plan.description || "",
       monthlyPrice: plan.monthlyPrice,
       yearlyPrice: plan.yearlyPrice,
@@ -112,8 +115,11 @@ export function PlanForm({ plan, onSuccess }: PlanFormProps) {
   const onSubmit = async (data: PlanFormData) => {
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/admin/plans/${plan.id}`, {
-        method: "PATCH",
+      const url = isNew ? "/api/admin/plans" : `/api/admin/plans/${plan.id}`;
+      const method = isNew ? "POST" : "PATCH";
+      
+      const response = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...data,
@@ -123,18 +129,18 @@ export function PlanForm({ plan, onSuccess }: PlanFormProps) {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || "Erro ao atualizar plano");
+        throw new Error(error.message || `Erro ao ${isNew ? "criar" : "atualizar"} plano`);
       }
 
       toast({
         title: "Sucesso",
-        description: "Plano atualizado com sucesso!",
+        description: `Plano ${isNew ? "criado" : "atualizado"} com sucesso!`,
       });
       onSuccess();
     } catch (error: any) {
       toast({
         title: "Erro",
-        description: error.message || "Erro ao atualizar plano",
+        description: error.message || `Erro ao ${isNew ? "criar" : "atualizar"} plano`,
         variant: "destructive",
       });
     } finally {
@@ -146,6 +152,23 @@ export function PlanForm({ plan, onSuccess }: PlanFormProps) {
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       <div className="grid grid-cols-2 gap-4">
         <div>
+          <Label htmlFor="planId">Plan ID (Código Único)</Label>
+          <Input
+            id="planId"
+            {...register("planId")}
+            className="bg-white/5 border-white/10 text-white"
+            disabled={!isNew}
+            placeholder="Ex: STARTER, BASIC, PREMIUM"
+          />
+          {errors.planId && (
+            <p className="text-red-400 text-sm mt-1">{errors.planId.message}</p>
+          )}
+          {!isNew && (
+            <p className="text-gray-500 text-xs mt-1">Plan ID não pode ser alterado</p>
+          )}
+        </div>
+
+        <div>
           <Label htmlFor="name">Nome do Plano</Label>
           <Input
             id="name"
@@ -156,16 +179,16 @@ export function PlanForm({ plan, onSuccess }: PlanFormProps) {
             <p className="text-red-400 text-sm mt-1">{errors.name.message}</p>
           )}
         </div>
+      </div>
 
-        <div>
-          <Label htmlFor="orderIndex">Ordem de Exibição</Label>
-          <Input
-            id="orderIndex"
-            type="number"
-            {...register("orderIndex", { valueAsNumber: true })}
-            className="bg-white/5 border-white/10 text-white"
-          />
-        </div>
+      <div>
+        <Label htmlFor="orderIndex">Ordem de Exibição</Label>
+        <Input
+          id="orderIndex"
+          type="number"
+          {...register("orderIndex", { valueAsNumber: true })}
+          className="bg-white/5 border-white/10 text-white"
+        />
       </div>
 
       <div>
@@ -365,7 +388,7 @@ export function PlanForm({ plan, onSuccess }: PlanFormProps) {
           disabled={isLoading}
           className="bg-gradient-to-r from-neon-cyan to-neon-magenta text-black font-semibold hover:opacity-90"
         >
-          {isLoading ? "Salvando..." : "Salvar Alterações"}
+          {isLoading ? (isNew ? "Criando..." : "Salvando...") : (isNew ? "Criar Plano" : "Salvar Alterações")}
         </Button>
       </div>
     </form>

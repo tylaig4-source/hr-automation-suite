@@ -97,6 +97,22 @@ export async function POST(
 
     const isAdmin = user?.role === "ADMIN";
 
+    // Verificar se pode executar agentes (bloqueio de trial/assinatura)
+    if (!isAdmin && session.user.companyId) {
+      const { canExecuteAgents } = await import("@/lib/trial-settings");
+      const canExecute = await canExecuteAgents(session.user.companyId);
+      
+      if (!canExecute.allowed) {
+        return NextResponse.json(
+          { 
+            error: canExecute.reason || "Acesso bloqueado. Assine um plano para continuar.",
+            requiresUpgrade: true 
+          },
+          { status: 402 } // Payment Required
+        );
+      }
+    }
+
     // Verificar créditos da empresa (admin tem acesso ilimitado)
     if (!isAdmin) {
       const company = await prisma.company.findUnique({
