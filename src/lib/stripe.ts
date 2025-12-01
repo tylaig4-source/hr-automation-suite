@@ -33,6 +33,23 @@ async function getStripe(): Promise<Stripe> {
     
     const secretKey = dbKey || envKey;
     
+    // Log para debug (não mostra a chave completa por segurança)
+    if (secretKey) {
+      const keyPreview = secretKey.substring(0, 12) + "..." + secretKey.substring(secretKey.length - 4);
+      console.log(`[Stripe] Usando chave: ${keyPreview} (tamanho: ${secretKey.length})`);
+      
+      // Validar formato básico da chave
+      if (!secretKey.startsWith("sk_test_") && !secretKey.startsWith("sk_live_")) {
+        console.error(`[Stripe] AVISO: Chave não começa com sk_test_ ou sk_live_`);
+      }
+      
+      if (secretKey.length < 50) {
+        console.error(`[Stripe] AVISO: Chave muito curta (${secretKey.length} caracteres). Chaves do Stripe geralmente têm 100+ caracteres.`);
+      }
+    } else {
+      console.warn("[Stripe] Nenhuma chave encontrada, usando dummy");
+    }
+    
     // Durante o build, sempre permite usar uma chave dummy para não quebrar
     const keyToUse = secretKey || "sk_test_dummy";
     
@@ -440,6 +457,20 @@ export async function syncPlanToStripe(data: {
   if (!configured) {
     console.error("[syncPlanToStripe] Stripe não está configurado");
     throw new Error("Stripe não está configurado. Configure as chaves em /admin/settings");
+  }
+
+  // Verificar chave antes de usar
+  const secretKey = await getStripeSecretKey();
+  if (!secretKey) {
+    throw new Error("Chave secreta do Stripe não encontrada no banco de dados");
+  }
+  
+  if (secretKey.length < 50) {
+    throw new Error(`Chave secreta do Stripe parece estar incompleta (${secretKey.length} caracteres). Verifique se a chave foi salva corretamente em /admin/settings.`);
+  }
+  
+  if (!secretKey.startsWith("sk_test_") && !secretKey.startsWith("sk_live_")) {
+    throw new Error(`Chave secreta do Stripe inválida. Deve começar com sk_test_ ou sk_live_. Primeiros caracteres: ${secretKey.substring(0, 20)}`);
   }
 
   console.log(`[syncPlanToStripe] Stripe configurado, criando/buscando produto: ${data.name}`);
