@@ -101,7 +101,7 @@ export async function GET(request: NextRequest) {
       : (thisMonthUsage._sum.tokensUsed || 0);
 
     // Buscar modelo mais usado para calcular custo
-    const mostUsedModel = await prisma.execution.groupBy({
+    const mostUsedModels = await prisma.execution.groupBy({
       by: ["agentId"],
       where: {
         companyId,
@@ -115,15 +115,14 @@ export async function GET(request: NextRequest) {
         _sum: {
           tokensUsed: "desc",
         },
-        take: 1,
       },
     });
 
     let estimatedMonthlyCost = 0;
-    if (mostUsedModel.length > 0) {
+    if (mostUsedModels.length > 0) {
       // Buscar o modelo do agente mais usado
       const agent = await prisma.agent.findUnique({
-        where: { id: mostUsedModel[0].agentId },
+        where: { id: mostUsedModels[0].agentId },
         select: { model: true },
       });
 

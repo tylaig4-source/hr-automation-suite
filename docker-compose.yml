@@ -3,8 +3,6 @@
 # ==========================================
 # Rode com: docker-compose up -d
 
-version: '3.8'
-
 services:
   # ==========================================
   # PostgreSQL - Banco de dados principal
