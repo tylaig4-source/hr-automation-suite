@@ -177,8 +177,9 @@ export default async function AdminCompaniesPage({
 
       {/* Table */}
       <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
+        <div className="overflow-x-auto -mx-4 sm:mx-0">
+          <div className="inline-block min-w-full align-middle">
+            <table className="w-full min-w-[900px]">
             <thead>
               <tr className="border-b border-white/10">
                 <th className="text-left p-4 text-sm font-medium text-gray-400">Empresa</th>
@@ -274,6 +275,7 @@ export default async function AdminCompaniesPage({
               )}
             </tbody>
           </table>
+          </div>
         </div>
 
         {/* Pagination */}

@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { PlanSelectionPage } from "@/components/onboarding/plan-selection-page";
+import { MultiStepOnboarding } from "@/components/onboarding/multi-step-onboarding";
 
 export default async function OnboardingPage() {
   const session = await getServerSession(authOptions);
@@ -16,6 +16,7 @@ export default async function OnboardingPage() {
 
   // Buscar companyId se não estiver na sessão
   let finalCompanyId = companyId;
+  let initialCompanyName = "";
   if (!finalCompanyId && userId) {
     try {
       const user = await prisma.user.findUnique({
@@ -36,6 +37,7 @@ export default async function OnboardingPage() {
       const company = await prisma.company.findUnique({
         where: { id: finalCompanyId },
         select: {
+          name: true,
           isTrialing: true,
           trialEndDate: true,
           maxUsers: true,
@@ -50,6 +52,8 @@ export default async function OnboardingPage() {
       });
 
       if (company) {
+        initialCompanyName = company.name || "";
+        
         // Verificar se tem plano ativo
         const hasActiveTrial =
           company.isTrialing &&
@@ -81,6 +85,6 @@ export default async function OnboardingPage() {
     orderBy: { orderIndex: "asc" },
   });
 
-  return <PlanSelectionPage plans={plans} />;
+  return <MultiStepOnboarding plans={plans} initialCompanyName={initialCompanyName} />;
 }
 

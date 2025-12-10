@@ -56,6 +56,10 @@ export async function POST(request: NextRequest) {
 
     // Processar evento
     switch (event.type) {
+      case "checkout.session.completed":
+        await handleCheckoutSessionCompleted(event.data.object as Stripe.Checkout.Session);
+        break;
+
       case "payment_intent.succeeded":
         await handlePaymentSucceeded(event.data.object as Stripe.PaymentIntent);
         break;
@@ -104,6 +108,126 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+async function handleCheckoutSessionCompleted(checkoutSession: Stripe.Checkout.Session) {
+  console.log(`[Stripe Webhook] Checkout session completed: ${checkoutSession.id}`);
+
+  const companyId = checkoutSession.metadata?.companyId;
+  if (!companyId) {
+    console.warn(`[Stripe Webhook] No companyId in metadata for checkout session: ${checkoutSession.id}`);
+    return;
+  }
+
+  const company = await prisma.company.findUnique({
+    where: { id: companyId },
+  });
+
+  if (!company) {
+    console.warn(`[Stripe Webhook] Company not found: ${companyId}`);
+    return;
+  }
+
+  // Se a sessão tem uma subscription, processar
+  if (checkoutSession.subscription) {
+    const stripe = await getStripeInstance();
+    const subscriptionId = typeof checkoutSession.subscription === "string"
+      ? checkoutSession.subscription
+      : checkoutSession.subscription.id;
+
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
+      expand: ["items.data.price.product"],
+    });
+
+    // Processar subscription criada via checkout
+    await handleSubscriptionFromCheckout(subscription, checkoutSession.metadata || {});
+  }
+}
+
+async function handleSubscriptionFromCheckout(
+  subscription: Stripe.Subscription,
+  metadata?: Record<string, string>
+) {
+  const companyId = metadata?.companyId;
+  if (!companyId) {
+    console.warn(`[Stripe Webhook] No companyId in metadata for subscription: ${subscription.id}`);
+    return;
+  }
+
+  const planId = metadata?.planId;
+  if (!planId) {
+    console.warn(`[Stripe Webhook] No planId in metadata for subscription: ${subscription.id}`);
+    return;
+  }
+
+  // Buscar plano
+  const plan = await prisma.plan.findUnique({
+    where: { planId },
+  });
+
+  if (!plan) {
+    console.warn(`[Stripe Webhook] Plan not found: ${planId}`);
+    return;
+  }
+
+  // Calcular valor e próxima data
+  const priceItem = subscription.items.data[0]?.price;
+  const planPrice = priceItem ? (priceItem.unit_amount || 0) / 100 : plan.monthlyPrice || 0;
+
+  const billingCycle = metadata?.billingCycle === "YEARLY" ? "YEARLY" : "MONTHLY";
+  const nextDueDate = new Date((subscription as any).current_period_end * 1000);
+
+  // Mapear status
+  let status: "PENDING" | "ACTIVE" | "OVERDUE" | "CANCELED" | "EXPIRED" = "PENDING";
+  if (subscription.status === "active" || subscription.status === "trialing") {
+    status = "ACTIVE";
+  } else if (subscription.status === "past_due" || subscription.status === "unpaid") {
+    status = "OVERDUE";
+  } else if (subscription.status === "canceled") {
+    status = "CANCELED";
+  } else if (subscription.status === "incomplete_expired") {
+    status = "EXPIRED";
+  }
+
+  // Criar ou atualizar subscription
+  await prisma.subscription.upsert({
+    where: { companyId },
+    create: {
+      companyId,
+      stripeSubscriptionId: subscription.id,
+      stripePriceId: priceItem?.id || "",
+      planId,
+      billingType: billingCycle,
+      value: planPrice,
+      status,
+      nextDueDate,
+      cycle: billingCycle,
+    },
+    update: {
+      stripeSubscriptionId: subscription.id,
+      stripePriceId: priceItem?.id || "",
+      planId,
+      billingType: billingCycle,
+      value: planPrice,
+      status,
+      nextDueDate,
+      cycle: billingCycle,
+    },
+  });
+
+  // Atualizar company
+  await prisma.company.update({
+    where: { id: companyId },
+    data: {
+      plan: planId as any,
+      isTrialing: subscription.status === "trialing",
+      maxUsers: plan.maxUsers || undefined,
+      maxExecutions: plan.maxExecutions || undefined,
+      credits: plan.maxCredits || undefined,
+    },
+  });
+
+  console.log(`[Stripe Webhook] Subscription created/updated for company: ${companyId}`);
 }
 
 async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {

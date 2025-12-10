@@ -201,8 +201,9 @@ export function SubscriptionsClient({ subscriptions: initialSubscriptions, stats
               <p className="text-gray-400">Nenhuma assinatura encontrada</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
+            <div className="overflow-x-auto -mx-4 sm:mx-0">
+              <div className="inline-block min-w-full align-middle">
+                <table className="w-full min-w-[1000px]">
                 <thead>
                   <tr className="border-b border-white/10">
                     <th className="text-left p-4 text-sm font-medium text-gray-400">Empresa</th>
@@ -276,6 +277,7 @@ export function SubscriptionsClient({ subscriptions: initialSubscriptions, stats
                   })}
                 </tbody>
               </table>
+              </div>
             </div>
           )}
         </CardContent>
