@@ -98,16 +98,16 @@ export async function GET(request: NextRequest) {
         // Admin ou ENTERPRISE tem acesso ilimitado
         const isUnlimited = isAdmin || company.plan === "ENTERPRISE";
         
-        // Proteção contra divisão por zero
+        // Proteção contra divisão por zero e valores null/undefined
         const maxExecutions = company.maxExecutions || 1;
         const maxUsers = company.maxUsers || 1;
         
         const executionsPercentage = isUnlimited || maxExecutions === 0 
             ? 0 
-            : Math.min(100, (usedExecutions / maxExecutions) * 100);
+            : Math.min(100, Math.max(0, (usedExecutions / maxExecutions) * 100));
         const usersPercentage = isUnlimited || maxUsers === 0 
             ? 0 
-            : Math.min(100, (usedUsers / maxUsers) * 100);
+            : Math.min(100, Math.max(0, (usedUsers / maxUsers) * 100));
 
         // Calcular dias restantes do trial
         let trialDaysLeft = 0;
@@ -147,10 +147,16 @@ export async function GET(request: NextRequest) {
     } catch (error: any) {
         console.error("Erro ao buscar uso:", error);
         console.error("Stack trace:", error?.stack);
+        console.error("Error details:", {
+            message: error?.message,
+            name: error?.name,
+            code: error?.code,
+        });
         return NextResponse.json(
             { 
                 error: "Erro interno do servidor",
-                details: process.env.NODE_ENV === "development" ? error.message : undefined
+                message: process.env.NODE_ENV === "development" ? error?.message : undefined,
+                code: error?.code,
             },
             { status: 500 }
         );
