@@ -1,6 +1,7 @@
 "use client";
 
-import { Bell, Search, Settings } from "lucide-react";
+import { useState } from "react";
+import { Bell, Search, Settings, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -11,9 +12,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { signOut } from "next-auth/react";
 import { getAbsoluteUrl } from "@/lib/url";
 import Link from "next/link";
+import { AdminMobileSidebar } from "./admin-mobile-sidebar";
 
 interface AdminHeaderProps {
   user: {
@@ -24,6 +27,7 @@ interface AdminHeaderProps {
 }
 
 export function AdminHeader({ user }: AdminHeaderProps) {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const initials = user.name
     ? user.name
         .split(" ")
@@ -35,10 +39,23 @@ export function AdminHeader({ user }: AdminHeaderProps) {
 
   return (
     <header className="sticky top-0 z-30 h-16 border-b border-white/10 bg-[#0a0a0f]/80 backdrop-blur-xl">
-      <div className="flex h-full items-center justify-between px-6">
+      <div className="flex h-full items-center justify-between px-4 sm:px-6 gap-2 sm:gap-4">
+        {/* Mobile menu button */}
+        <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+          <SheetTrigger asChild>
+            <Button variant="ghost" size="icon" className="lg:hidden text-white hover:bg-white/10">
+              <Menu className="h-5 w-5" />
+              <span className="sr-only">Menu</span>
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="p-0 w-64 bg-[#0f0f14] border-white/10">
+            <AdminMobileSidebar onClose={() => setMobileMenuOpen(false)} />
+          </SheetContent>
+        </Sheet>
+
         {/* Search */}
-        <div className="flex items-center gap-4 flex-1 max-w-xl">
-          <div className="relative flex-1">
+        <div className="flex items-center gap-2 sm:gap-4 flex-1 max-w-xl">
+          <div className="relative flex-1 hidden sm:block">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
             <Input
               placeholder="Buscar empresas, usuários..."
@@ -48,7 +65,7 @@ export function AdminHeader({ user }: AdminHeaderProps) {
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4">
           {/* Notifications */}
           <Button
             variant="ghost"

@@ -21,6 +21,7 @@ import { OnboardingWrapper } from "@/components/dashboard/onboarding-wrapper";
 import { TrialUpgradeAlert } from "@/components/dashboard/trial-upgrade-alert";
 import { PaymentAlert } from "@/components/dashboard/payment-alert";
 import { UpgradeSuggestionAlert } from "@/components/dashboard/upgrade-suggestion-alert";
+import { TokenUsageWidget } from "@/components/dashboard/token-usage-widget";
 import { getTrialSettings } from "@/lib/trial-settings";
 
 const quickAccess = [
@@ -264,7 +265,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <div className="glass rounded-2xl p-6 border border-neon-cyan/20 hover:border-neon-cyan/40 transition-colors">
           <div className="flex items-center justify-between mb-4">
             <p className="text-sm font-medium text-gray-400">Execuções este mês</p>
@@ -309,6 +310,9 @@ export default async function DashboardPage() {
         </div>
       </div>
 
+      {/* Token Usage Widget */}
+      <TokenUsageWidget />
+
       {/* Quick Access */}
       <div>
         <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
@@ -346,7 +350,7 @@ export default async function DashboardPage() {
             </button>
           </Link>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {categories.slice(0, 8).map((category) => {
             // @ts-ignore
             const Icon = LucideIcons[category.icon || "Circle"] || LucideIcons.Circle;

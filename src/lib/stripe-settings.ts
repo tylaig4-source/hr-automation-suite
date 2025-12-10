@@ -35,14 +35,21 @@ export async function getStripeSecretKey(): Promise<string | null> {
 
     // Validar formato básico
     if (!decryptedKey.startsWith("sk_test_") && !decryptedKey.startsWith("sk_live_")) {
-      console.error(`[Stripe Settings] AVISO: Chave não começa com sk_test_ ou sk_live_`);
+      console.error(`[Stripe Settings] ERRO: Chave não começa com sk_test_ ou sk_live_`);
       console.error(`[Stripe Settings] Primeiros caracteres: ${decryptedKey.substring(0, 20)}`);
+      console.error(`[Stripe Settings] Tamanho total: ${decryptedKey.length} caracteres`);
+      // Não retornar chave inválida - deixar que o erro seja tratado em getStripe()
+      return null;
     }
 
     if (decryptedKey.length < 50) {
-      console.error(`[Stripe Settings] AVISO: Chave muito curta (${decryptedKey.length} caracteres)`);
+      console.error(`[Stripe Settings] ERRO: Chave muito curta (${decryptedKey.length} caracteres)`);
+      console.error(`[Stripe Settings] Chaves do Stripe geralmente têm 100+ caracteres`);
+      // Não retornar chave inválida
+      return null;
     }
 
+    console.log(`[Stripe Settings] Chave válida encontrada (${decryptedKey.length} caracteres)`);
     return decryptedKey;
   } catch (error) {
     console.error("[Stripe Settings] Erro ao buscar chave do banco:", error);

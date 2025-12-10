@@ -9,7 +9,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     return (
         <div
             className={cn(
-                "transition-all duration-300 ease-in-out",
+                "transition-all duration-300 ease-in-out w-full",
                 isCollapsed ? "lg:pl-20" : "lg:pl-64"
             )}
         >

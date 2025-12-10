@@ -14,6 +14,7 @@ import {
 import { WebhookSettings } from "./webhook-settings";
 import { ApiSettings } from "./api-settings";
 import { GeneralSettings } from "./general-settings";
+import { ModelPricingSettings } from "./model-pricing-settings";
 
 export const metadata = {
   title: "Configurações | Admin HR Suite",
@@ -104,6 +105,22 @@ export default async function AdminSettingsPage() {
           </div>
           <div className="p-6">
             <WebhookSettings settings={settings} />
+          </div>
+        </div>
+
+        {/* Model Pricing Configuration */}
+        <div className="rounded-2xl border border-white/10 bg-white/5">
+          <div className="flex items-center gap-3 border-b border-white/10 p-6">
+            <div className="p-2 rounded-xl bg-yellow-500/20">
+              <Key className="h-5 w-5 text-yellow-400" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-white">Preços dos Modelos de IA</h2>
+              <p className="text-sm text-gray-400">Configure os custos por token para cada modelo de IA</p>
+            </div>
+          </div>
+          <div className="p-6">
+            <ModelPricingSettings />
           </div>
         </div>
 

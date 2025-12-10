@@ -104,7 +104,7 @@ export default async function DashboardLayout({
         {/* Main content */}
         <DashboardShell>
           <Header user={session.user} />
-          <main className="p-6 relative z-10">{children}</main>
+          <main className="p-4 sm:p-6 relative z-10">{children}</main>
         </DashboardShell>
       </div>
     </SidebarProvider>

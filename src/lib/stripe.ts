@@ -25,37 +25,64 @@ export function invalidateStripeCache() {
  */
 async function getStripe(): Promise<Stripe> {
   if (!stripeInstance || stripeSecretKey === null) {
-    // Tenta buscar do banco primeiro
+    // Tenta buscar do banco primeiro (prioridade)
     const dbKey = await getStripeSecretKey();
     
     // Fallback para env (para compatibilidade)
     const envKey = process.env.STRIPE_SECRET_KEY;
     
     const secretKey = dbKey || envKey;
+    const keySource = dbKey ? "banco de dados" : (envKey ? "variável de ambiente" : "nenhuma");
     
     // Log para debug (não mostra a chave completa por segurança)
     if (secretKey) {
       const keyPreview = secretKey.substring(0, 12) + "..." + secretKey.substring(secretKey.length - 4);
-      console.log(`[Stripe] Usando chave: ${keyPreview} (tamanho: ${secretKey.length})`);
+      console.log(`[Stripe] Usando chave do ${keySource}: ${keyPreview} (tamanho: ${secretKey.length})`);
       
       // Validar formato básico da chave
       if (!secretKey.startsWith("sk_test_") && !secretKey.startsWith("sk_live_")) {
-        console.error(`[Stripe] AVISO: Chave não começa com sk_test_ ou sk_live_`);
+        console.error(`[Stripe] ERRO: Chave não começa com sk_test_ ou sk_live_`);
+        console.error(`[Stripe] Primeiros caracteres: ${secretKey.substring(0, 20)}`);
+        throw new Error(
+          "Chave do Stripe inválida. A chave deve começar com 'sk_test_' ou 'sk_live_'. Verifique a configuração em /admin/settings"
+        );
       }
       
       if (secretKey.length < 50) {
-        console.error(`[Stripe] AVISO: Chave muito curta (${secretKey.length} caracteres). Chaves do Stripe geralmente têm 100+ caracteres.`);
+        console.error(`[Stripe] ERRO: Chave muito curta (${secretKey.length} caracteres). Chaves do Stripe geralmente têm 100+ caracteres.`);
+        throw new Error(
+          "Chave do Stripe inválida. A chave parece estar incompleta. Verifique a configuração em /admin/settings"
+        );
       }
     } else {
-      console.warn("[Stripe] Nenhuma chave encontrada, usando dummy");
+      // Verificar se estamos em fase de build
+      const isBuildPhase = process.env.NEXT_PHASE === "phase-production-build" || 
+                          process.env.NEXT_PHASE === "phase-development-build" ||
+                          process.env.NODE_ENV === "test";
+      
+      if (isBuildPhase) {
+        // Durante o build, usar chave dummy para não quebrar
+        console.warn("[Stripe] Build phase detectada - usando chave dummy temporária");
+        stripeSecretKey = "sk_test_dummy";
+        stripeInstance = new Stripe("sk_test_dummy", {
+          apiVersion: "2025-11-17.clover",
+          typescript: true,
+        });
+        return stripeInstance;
+      }
+      
+      // Em runtime, não usar chave dummy - lançar erro claro
+      console.error("[Stripe] ERRO: Nenhuma chave encontrada no banco de dados ou variáveis de ambiente");
+      console.error("[Stripe] Configure as chaves do Stripe em /admin/settings");
+      throw new Error(
+        "Stripe não está configurado. Configure as chaves do Stripe em /admin/settings ou defina STRIPE_SECRET_KEY no .env"
+      );
     }
     
-    // Durante o build, sempre permite usar uma chave dummy para não quebrar
-    const keyToUse = secretKey || "sk_test_dummy";
+    // Usar a chave encontrada
+    stripeSecretKey = secretKey;
     
-    stripeSecretKey = keyToUse;
-    
-    stripeInstance = new Stripe(keyToUse, {
+    stripeInstance = new Stripe(secretKey, {
       apiVersion: "2025-11-17.clover",
       typescript: true,
     });
@@ -66,11 +93,37 @@ async function getStripe(): Promise<Stripe> {
 
 // Helper para verificar se Stripe está configurado
 export async function isStripeConfigured(): Promise<boolean> {
-  const dbKey = await getStripeSecretKey();
-  const envKey = process.env.STRIPE_SECRET_KEY;
-  
-  const secretKey = dbKey || envKey;
-  return !!secretKey && secretKey !== "sk_test_dummy";
+  try {
+    const dbKey = await getStripeSecretKey();
+    const envKey = process.env.STRIPE_SECRET_KEY;
+    
+    const secretKey = dbKey || envKey;
+    
+    // Verificar se a chave existe e é válida
+    if (!secretKey) {
+      return false;
+    }
+    
+    // Verificar se não é chave dummy
+    if (secretKey === "sk_test_dummy") {
+      return false;
+    }
+    
+    // Verificar formato básico
+    if (!secretKey.startsWith("sk_test_") && !secretKey.startsWith("sk_live_")) {
+      return false;
+    }
+    
+    // Verificar tamanho mínimo
+    if (secretKey.length < 50) {
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error("[Stripe] Erro ao verificar configuração:", error);
+    return false;
+  }
 }
 
 // Exporta uma função getter ao invés de instância direta
@@ -460,17 +513,28 @@ export async function createPixPayment(data: {
     metadata: data.metadata,
   });
 
-  // Para PIX, o QR Code está disponível no next_action após criar o PaymentIntent
-  // Não precisamos confirmar imediatamente - o cliente confirma ao pagar
-  const nextAction = paymentIntent.next_action;
+  // Para PIX, precisamos confirmar o PaymentIntent para obter o QR Code
+  // O QR Code está disponível no next_action após confirmar
+  let confirmedPaymentIntent = paymentIntent;
+  
+  // Se o PaymentIntent não estiver confirmado, tentar confirmar
+  if (paymentIntent.status === "requires_payment_method") {
+    try {
+      confirmedPaymentIntent = await stripe.paymentIntents.confirm(paymentIntent.id);
+    } catch (error) {
+      console.error("Erro ao confirmar PaymentIntent PIX:", error);
+    }
+  }
+  
+  const nextAction = confirmedPaymentIntent.next_action;
   const pixData = nextAction?.type === "display_bank_transfer_details"
     ? (nextAction as any).display_bank_transfer_details
     : null;
   
   return {
-    payment_intent: paymentIntent,
+    payment_intent: confirmedPaymentIntent,
     pix_qr_code: pixData?.qr_code_data || undefined,
-    pix_copia_e_cola: pixData?.hosted_voucher_url || undefined,
+    pix_copia_e_cola: pixData?.hosted_voucher_url || pixData?.qr_code_data || undefined,
     expires_at: pixData?.expires_at ? pixData.expires_at * 1000 : undefined,
   };
 }
