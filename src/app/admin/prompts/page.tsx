@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { PromptList } from "@/components/admin/prompts/prompt-list";
+import { SyncAgentsButton } from "@/components/admin/prompts/sync-button";
 
 export const metadata: Metadata = {
     title: "Admin - Prompts | SaaS RH",
@@ -58,6 +59,12 @@ export default async function AdminPromptsPage() {
                     <p className="text-muted-foreground mt-2">
                         Edite prompts, templates e configurações de formulário dos agentes.
                     </p>
+                </div>
+                <div className="flex gap-4">
+                    <SyncAgentsButton />
+                    <Button asChild>
+                        <Link href="/admin/prompts/new">Criar Novo Agente</Link>
+                    </Button>
                 </div>
             </div>
 
