@@ -10,6 +10,7 @@ export async function updateAgentPrompt(
     data: {
         systemPrompt: string;
         promptTemplate: string;
+        inputSchema: any; // Using any to avoid complex type matching in server action, validated by frontend
     }
 ) {
     const session = await getServerSession(authOptions);
@@ -26,6 +27,7 @@ export async function updateAgentPrompt(
             data: {
                 systemPrompt: data.systemPrompt,
                 promptTemplate: data.promptTemplate,
+                inputSchema: data.inputSchema,
             },
         });
 

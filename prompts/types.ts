@@ -20,7 +20,7 @@ export interface FieldOption {
 export interface InputField {
   name: string;
   label: string;
-  type: "text" | "textarea" | "select" | "multiselect" | "date" | "number" | "email";
+  type: "text" | "textarea" | "select" | "multiselect" | "date" | "number" | "email" | "file";
   required: boolean;
   placeholder?: string;
   helperText?: string;
