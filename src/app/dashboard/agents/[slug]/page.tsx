@@ -29,9 +29,11 @@ interface ProviderInfo {
 export default function AgentPage() {
   const params = useParams();
   const slug = params.slug as string;
-  
-  const agent = getAgentBySlug(slug);
-  
+
+  // Estado para o agente carregado dinamicamente
+  const [agent, setAgent] = useState<any | null>(null);
+  const [loadingAgent, setLoadingAgent] = useState(true);
+
   const [inputs, setInputs] = useState<Record<string, string>>({});
   const [output, setOutput] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
@@ -40,6 +42,27 @@ export default function AgentPage() {
   const [selectedProvider, setSelectedProvider] = useState<string>("auto");
   const [providers, setProviders] = useState<ProviderInfo[]>([]);
   const [usedProvider, setUsedProvider] = useState<string | null>(null);
+
+  // Carregar agente da API
+  useEffect(() => {
+    setLoadingAgent(true);
+    fetch(`/api/agents/${slug}`)
+      .then(res => {
+        if (!res.ok) throw new Error("Falha ao carregar agente");
+        return res.json();
+      })
+      .then(data => {
+        setAgent(data);
+      })
+      .catch(err => {
+        console.error("Erro ao carregar agente:", err);
+        // Fallback: tentar carregar estático se API falhar, ou mostrar erro
+        const staticAgent = getAgentBySlug(slug);
+        if (staticAgent) setAgent(staticAgent);
+        else setError("Agente não encontrado");
+      })
+      .finally(() => setLoadingAgent(false));
+  }, [slug]);
 
   // Carrega providers disponíveis
   useEffect(() => {
@@ -53,6 +76,14 @@ export default function AgentPage() {
       })
       .catch(console.error);
   }, []);
+
+  if (loadingAgent) {
+    return (
+      <div className="flex h-[50vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   if (!agent) {
     return (
@@ -163,6 +194,27 @@ export default function AgentPage() {
       case "number":
         return <Input {...commonProps} type="number" min={field.min} max={field.max} />;
 
+      case "file":
+        return (
+          <div className="space-y-2">
+            <Input
+              id={field.name}
+              type="file"
+              onChange={(e) => {
+                // TODO: Implement actual file handling (upload/read)
+                // For now just storing the filename to not break the form
+                if (e.target.files && e.target.files[0]) {
+                  handleInputChange(field.name, e.target.files[0].name);
+                }
+              }}
+              disabled={isLoading}
+            />
+            <p className="text-xs text-muted-foreground">
+              Upload de arquivos ainda em desenvolvimento. O nome do arquivo será enviado como texto.
+            </p>
+          </div>
+        );
+
       default:
         return <Input {...commonProps} type="text" maxLength={field.maxLength} />;
     }
@@ -212,7 +264,7 @@ export default function AgentPage() {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            {agent.inputSchema.fields.map((field) => (
+            {agent.inputSchema.fields.map((field: InputField) => (
               <div key={field.name} className="space-y-2">
                 <Label htmlFor={field.name}>
                   {field.label}

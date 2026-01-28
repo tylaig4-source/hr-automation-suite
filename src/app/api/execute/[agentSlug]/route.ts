@@ -33,14 +33,97 @@ export async function POST(
       );
     }
 
-    // Buscar agente
-    const agent = getAgentBySlug(agentSlug);
-    if (!agent) {
-      return NextResponse.json(
-        { error: "Agente não encontrado" },
-        { status: 404 }
-      );
+    // ========================================
+    // DB-FIRST: Buscar agente do banco primeiro
+    // ========================================
+    let dbAgent = await prisma.agent.findUnique({
+      where: { slug: agentSlug },
+      include: {
+        category: true,
+      },
+    });
+
+    // Se não existir no banco, criar a partir do template estático
+    if (!dbAgent) {
+      const staticAgent = getAgentBySlug(agentSlug);
+      if (!staticAgent) {
+        return NextResponse.json(
+          { error: "Agente não encontrado" },
+          { status: 404 }
+        );
+      }
+
+      // Buscar ou criar categoria
+      let category = await prisma.category.findFirst({
+        where: {
+          OR: [
+            { id: staticAgent.categoryId },
+            { slug: staticAgent.categoryId }
+          ]
+        },
+      });
+
+      if (!category) {
+        category = await prisma.category.create({
+          data: {
+            name: staticAgent.categoryId,
+            slug: staticAgent.categoryId,
+          },
+        });
+      }
+
+      // Criar agente no banco a partir do template
+      try {
+        dbAgent = await prisma.agent.create({
+          data: {
+            id: staticAgent.id,
+            categoryId: category.id,
+            name: staticAgent.name,
+            slug: staticAgent.slug,
+            description: staticAgent.description,
+            shortDescription: staticAgent.shortDescription,
+            promptTemplate: staticAgent.promptTemplate,
+            systemPrompt: staticAgent.systemPrompt,
+            inputSchema: staticAgent.inputSchema as any,
+            estimatedTimeSaved: staticAgent.estimatedTimeSaved,
+            temperature: staticAgent.temperature,
+            maxTokens: staticAgent.maxTokens,
+            model: staticAgent.model,
+          },
+          include: {
+            category: true,
+          },
+        });
+      } catch (createError: any) {
+        // Se o ID já existir, tentar criar sem especificar o ID
+        if (createError?.code === 'P2002') {
+          dbAgent = await prisma.agent.create({
+            data: {
+              categoryId: category.id,
+              name: staticAgent.name,
+              slug: staticAgent.slug,
+              description: staticAgent.description,
+              shortDescription: staticAgent.shortDescription,
+              promptTemplate: staticAgent.promptTemplate,
+              systemPrompt: staticAgent.systemPrompt,
+              inputSchema: staticAgent.inputSchema as any,
+              estimatedTimeSaved: staticAgent.estimatedTimeSaved,
+              temperature: staticAgent.temperature,
+              maxTokens: staticAgent.maxTokens,
+              model: staticAgent.model,
+            },
+            include: {
+              category: true,
+            },
+          });
+        } else {
+          throw createError;
+        }
+      }
     }
+
+    // Agora usamos dbAgent para tudo (valores editados pelo admin)
+    const agentInputSchema = (dbAgent.inputSchema as any) || { fields: [] };
 
     // Validar inputs
     const body = await request.json();
@@ -71,9 +154,9 @@ export async function POST(
     // Verificar se usuário tem empresa
     if (!session.user.companyId) {
       return NextResponse.json(
-        { 
+        {
           error: "Você precisa escolher um plano primeiro. Complete o onboarding para continuar.",
-          requiresPlanSelection: true 
+          requiresPlanSelection: true
         },
         { status: 402 } // Payment Required
       );
@@ -116,9 +199,9 @@ export async function POST(
     // Bloquear se não tiver plano ativo
     if (!hasActivePlan && company.credits === 0) {
       return NextResponse.json(
-        { 
+        {
           error: "Você precisa escolher um plano primeiro. Complete o onboarding para continuar.",
-          requiresPlanSelection: true 
+          requiresPlanSelection: true
         },
         { status: 402 } // Payment Required
       );
@@ -134,12 +217,12 @@ export async function POST(
       } else if (subscriptionStatus === "PENDING") {
         errorMessage = "Pagamento pendente. Complete o pagamento para continuar usando os agentes.";
       }
-      
+
       return NextResponse.json(
-        { 
+        {
           error: errorMessage,
           requiresPayment: true,
-          subscriptionStatus 
+          subscriptionStatus
         },
         { status: 402 } // Payment Required
       );
@@ -150,14 +233,14 @@ export async function POST(
     if (hasActiveSubscription && !isAdmin && session.user.companyId) {
       try {
         const { validateSubscriptionAccess, shouldValidateWithStripe } = await import("@/lib/subscription-security");
-        
+
         // Validar com Stripe (pode ser configurado para validar apenas X% das vezes)
         if (shouldValidateWithStripe()) {
           const validation = await validateSubscriptionAccess(session.user.companyId);
-          
+
           if (!validation.allowed) {
             return NextResponse.json(
-              { 
+              {
                 error: validation.reason || "Assinatura inválida. Verifique seu método de pagamento.",
                 requiresPayment: true,
                 subscriptionStatus: "INVALID"
@@ -176,12 +259,12 @@ export async function POST(
     if (!isAdmin && session.user.companyId) {
       const { canExecuteAgents } = await import("@/lib/trial-settings");
       const canExecute = await canExecuteAgents(session.user.companyId);
-      
+
       if (!canExecute.allowed) {
         return NextResponse.json(
-          { 
+          {
             error: canExecute.reason || "Acesso bloqueado. Assine um plano para continuar.",
-            requiresUpgrade: true 
+            requiresUpgrade: true
           },
           { status: 402 } // Payment Required
         );
@@ -190,12 +273,12 @@ export async function POST(
 
     // Verificar créditos da empresa (admin tem acesso ilimitado)
     if (!isAdmin) {
-      const company = await prisma.company.findUnique({
+      const companyCredits = await prisma.company.findUnique({
         where: { id: session.user.companyId! }, // Agora garantimos que existe
         select: { credits: true }
       });
 
-      if (!company || company.credits < 1) {
+      if (!companyCredits || companyCredits.credits < 1) {
         return NextResponse.json(
           { error: "Créditos insuficientes. Faça um upgrade no seu plano." },
           { status: 402 } // Payment Required
@@ -203,8 +286,8 @@ export async function POST(
       }
     }
 
-    // Validar campos obrigatórios
-    for (const field of agent.inputSchema.fields) {
+    // Validar campos obrigatórios usando inputSchema do banco
+    for (const field of agentInputSchema.fields || []) {
       if (field.required && !inputs[field.name]) {
         return NextResponse.json(
           { error: `Campo obrigatório: ${field.label}` },
@@ -213,9 +296,9 @@ export async function POST(
       }
     }
 
-    // Montar prompt final
+    // Montar prompt final usando template do banco
     const userPrompt = buildPromptFromTemplate(
-      agent.promptTemplate,
+      dbAgent.promptTemplate,
       inputs as Record<string, string | number | boolean | undefined>
     );
 
@@ -224,99 +307,15 @@ export async function POST(
 
     const result = await createAICompletion({
       provider: (provider as AIProvider) || "auto",
-      model: agent.model,
-      temperature: agent.temperature,
-      maxTokens: agent.maxTokens,
-      systemPrompt: agent.systemPrompt,
+      model: dbAgent.model || undefined,
+      temperature: dbAgent.temperature || undefined,
+      maxTokens: dbAgent.maxTokens || undefined,
+      systemPrompt: dbAgent.systemPrompt || undefined,
       userPrompt,
     });
 
     const executionTimeMs = Date.now() - startTime;
-    console.log(`[Execute] Agent: ${agent.slug}, Provider: ${result.provider}, Time: ${executionTimeMs}ms`);
-
-    // Buscar ou criar agente no banco (se não existir)
-    let dbAgent = await prisma.agent.findUnique({
-      where: { slug: agent.slug },
-    });
-
-    if (!dbAgent) {
-      try {
-        // Buscar categoria
-        let category = await prisma.category.findFirst({
-          where: {
-            OR: [
-              { id: agent.categoryId },
-              { slug: agent.categoryId }
-            ]
-          },
-        });
-
-        if (!category) {
-          // Criar categoria se não existir
-          category = await prisma.category.create({
-            data: {
-              name: agent.categoryId,
-              slug: agent.categoryId,
-            },
-          });
-        }
-
-        // Tentar criar com o ID do agente, mas se falhar, deixar o Prisma gerar
-        try {
-          dbAgent = await prisma.agent.create({
-            data: {
-              id: agent.id,
-              categoryId: category.id,
-              name: agent.name,
-              slug: agent.slug,
-              description: agent.description,
-              shortDescription: agent.shortDescription,
-              promptTemplate: agent.promptTemplate,
-              systemPrompt: agent.systemPrompt,
-              inputSchema: agent.inputSchema as any,
-              estimatedTimeSaved: agent.estimatedTimeSaved,
-              temperature: agent.temperature,
-              maxTokens: agent.maxTokens,
-              model: agent.model,
-            },
-          });
-        } catch (createError: any) {
-          // Se o ID já existir, tentar criar sem especificar o ID
-          if (createError?.code === 'P2002' || createError?.message?.includes('Unique constraint')) {
-            console.warn(`[Execute] ID ${agent.id} já existe, criando sem ID específico`);
-            dbAgent = await prisma.agent.create({
-              data: {
-                categoryId: category.id,
-                name: agent.name,
-                slug: agent.slug,
-                description: agent.description,
-                shortDescription: agent.shortDescription,
-                promptTemplate: agent.promptTemplate,
-                systemPrompt: agent.systemPrompt,
-                inputSchema: agent.inputSchema as any,
-                estimatedTimeSaved: agent.estimatedTimeSaved,
-                temperature: agent.temperature,
-                maxTokens: agent.maxTokens,
-                model: agent.model,
-              },
-            });
-          } else {
-            throw createError;
-          }
-        }
-      } catch (dbError) {
-        console.error("[Execute] Erro ao criar agente no banco:", dbError);
-        // Continuar mesmo se não conseguir criar no banco (pode ser problema temporário)
-        // Mas precisamos do dbAgent para salvar a execução, então vamos buscar novamente
-        dbAgent = await prisma.agent.findUnique({
-          where: { slug: agent.slug },
-        });
-        
-        if (!dbAgent) {
-          throw new Error("Não foi possível criar ou encontrar o agente no banco de dados");
-        }
-      }
-    }
+    console.log(`[Execute] Agent: ${dbAgent.slug}, Provider: ${result.provider}, Time: ${executionTimeMs}ms`);
 
     // Salvar execução no banco
     const execution = await prisma.execution.create({
@@ -367,7 +366,7 @@ export async function POST(
     });
   } catch (error) {
     console.error("[Execute] Erro na execução:", error);
-    
+
     // Log detalhado do erro
     if (error instanceof Error) {
       console.error("[Execute] Mensagem:", error.message);
@@ -384,9 +383,9 @@ export async function POST(
 
     // Retornar mensagem de erro mais específica se disponível
     const errorMessage = error instanceof Error ? error.message : "Erro interno do servidor";
-    
+
     return NextResponse.json(
-      { 
+      {
         error: "Erro interno do servidor",
         message: process.env.NODE_ENV === "development" ? errorMessage : undefined
       },

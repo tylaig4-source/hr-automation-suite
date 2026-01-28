@@ -13,6 +13,7 @@ import {
   DollarSign,
   UserMinus,
   ArrowRight,
+  Settings,
 } from "lucide-react";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -42,6 +43,16 @@ export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
   const userName = session?.user?.name?.split(" ")[0] || "Usuário";
   const userId = session?.user?.id;
+
+  // Buscar role do usuário
+  let isAdmin = false;
+  if (userId) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true },
+    });
+    isAdmin = user?.role === "ADMIN";
+  }
 
   // Buscar estatísticas reais do banco
   let stats = {
@@ -96,7 +107,7 @@ export default async function DashboardPage() {
       const averageRating =
         ratedExecutions.length > 0
           ? ratedExecutions.reduce((acc, e) => acc + (e.rating || 0), 0) /
-            ratedExecutions.length
+          ratedExecutions.length
           : 0;
 
       // Últimas 3 execuções
@@ -134,13 +145,25 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-8">
       {/* Welcome Section */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">
-          Olá, {userName}! 👋
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          O que vamos automatizar hoje?
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">
+            Olá, {userName}! 👋
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            O que vamos automatizar hoje?
+          </p>
+        </div>
+
+        {/* Admin Button */}
+        {isAdmin && (
+          <Link href="/admin">
+            <Button variant="outline" className="gap-2 border-primary/50 text-primary hover:bg-primary hover:text-primary-foreground">
+              <Settings className="h-4 w-4" />
+              Painel Admin
+            </Button>
+          </Link>
+        )}
       </div>
 
       {/* Stats Cards */}
