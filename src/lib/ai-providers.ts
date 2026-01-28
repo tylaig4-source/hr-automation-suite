@@ -35,14 +35,14 @@ export interface AICompletionResult {
 const PROVIDER_CONFIG = {
   openai: {
     // Modelo pode ser configurado via OPENAI_MODEL no .env
-    // Exemplos: gemini-2.0-flash, gpt-4, gpt-3.5-turbo
-    defaultModel: process.env.OPENAI_MODEL || "gemini-2.0-flash",
+    // Exemplos: gemini-2.5-pro-preview, gpt-4, gpt-3.5-turbo
+    defaultModel: process.env.OPENAI_MODEL || "gemini-2.5-pro-preview",
     maxTokens: 4000,
   },
   gemini: {
     // Modelo pode ser configurado via GEMINI_MODEL no .env
-    // Modelos disponíveis: gemini-pro, gemini-1.5-pro, gemini-1.5-flash, gemini-2.0-flash, gemini-2.0-flash-exp
-    defaultModel: process.env.GEMINI_MODEL || "gemini-2.0-flash",
+    // Modelos disponíveis: gemini-pro, gemini-1.5-pro, gemini-1.5-flash, gemini-2.5-pro-preview, gemini-2.5-pro-preview-exp
+    defaultModel: process.env.GEMINI_MODEL || "gemini-2.5-pro-preview",
     maxTokens: 8000,
   },
 };
@@ -143,6 +143,7 @@ async function callGemini(options: AICompletionOptions): Promise<AICompletionRes
     "gemini-1.5-flash",
     "gemini-2.0-flash",
     "gemini-2.0-flash-exp",
+    "gemini-2.5-pro-preview",
     "gemini-1.5-pro-latest",
     "gemini-1.5-flash-latest"
   ];

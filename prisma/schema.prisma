@@ -382,7 +382,7 @@ model Agent {
   // Configurações de IA
   temperature Float  @default(0.7)
   maxTokens   Int    @default(4000)
-  model       String @default("gemini-2.0-flash")
+  model       String @default("gemini-2.5-pro-preview")
 
   executions    Execution[]
   templates     UserTemplate[]
