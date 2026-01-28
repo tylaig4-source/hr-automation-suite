@@ -87,12 +87,20 @@ else
 fi
 
 # docker-compose ou podman-compose
+DOCKER_COMPOSE_CMD=""
 if [ "$DOCKER_CMD" = "docker" ]; then
-    if ! command -v docker-compose &> /dev/null && ! docker compose version &> /dev/null; then
-        print_error "docker-compose não encontrado!"
+    # Verificar qual versão do docker-compose está disponível
+    if command -v docker-compose &> /dev/null; then
+        DOCKER_COMPOSE_CMD="docker-compose"
+        print_success "docker-compose (standalone) encontrado"
+    elif docker compose version &> /dev/null 2>&1; then
+        DOCKER_COMPOSE_CMD="docker compose"
+        print_success "docker compose (plugin) encontrado"
+    else
+        print_error "docker-compose ou docker compose não encontrado!"
+        print_info "Instale com: sudo apt install docker-compose-plugin"
         exit 1
     fi
-    print_success "docker-compose encontrado"
 else
     if ! command -v podman-compose &> /dev/null; then
         print_warning "podman-compose não encontrado, tentando instalar..."
@@ -102,6 +110,7 @@ else
         fi
     fi
     if command -v podman-compose &> /dev/null; then
+        DOCKER_COMPOSE_CMD="podman-compose"
         print_success "podman-compose encontrado"
     else
         print_warning "podman-compose não disponível, usando script alternativo"
@@ -228,42 +237,27 @@ fi
 print_step "Iniciando containers Docker..."
 
 # Verificar se containers já estão rodando
-if [ "$DOCKER_CMD" = "docker" ]; then
-    if docker-compose ps 2>/dev/null | grep -q "Up"; then
+if [ -n "$DOCKER_COMPOSE_CMD" ]; then
+    if $DOCKER_COMPOSE_CMD ps 2>/dev/null | grep -q "Up\|running"; then
         print_warning "Containers já estão rodando"
         read -p "Deseja reiniciar os containers? (s/N): " -n 1 -r
         echo
         if [[ $REPLY =~ ^[Ss]$ ]]; then
-            docker-compose down
-            docker-compose up -d
+            $DOCKER_COMPOSE_CMD down
+            $DOCKER_COMPOSE_CMD up -d
         fi
     else
-        docker-compose up -d
+        $DOCKER_COMPOSE_CMD up -d
     fi
 else
-    # Usar podman-compose ou script alternativo
-    if command -v podman-compose &> /dev/null; then
-        if podman-compose ps 2>/dev/null | grep -q "Up"; then
-            print_warning "Containers já estão rodando"
-            read -p "Deseja reiniciar os containers? (s/N): " -n 1 -r
-            echo
-            if [[ $REPLY =~ ^[Ss]$ ]]; then
-                podman-compose down
-                podman-compose up -d
-            fi
-        else
-            podman-compose up -d
-        fi
+    # Usar script docker-podman.sh se existir
+    if [ -f "docker-podman.sh" ]; then
+        chmod +x docker-podman.sh
+        ./docker-podman.sh
     else
-        # Usar script docker-podman.sh se existir
-        if [ -f "docker-podman.sh" ]; then
-            chmod +x docker-podman.sh
-            ./docker-podman.sh
-        else
-            print_error "Não foi possível iniciar containers com Podman"
-            print_info "Instale podman-compose ou use Docker"
-            exit 1
-        fi
+        print_error "Não foi possível iniciar containers"
+        print_info "Instale docker-compose-plugin ou podman-compose"
+        exit 1
     fi
 fi
 
