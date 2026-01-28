@@ -94,6 +94,12 @@ export const DEFAULT_MODEL_PRICING: Record<string, ModelPricing> = {
     inputPrice: 0.000075, // $0.000075 per 1K tokens
     outputPrice: 0.0003, // $0.0003 per 1K tokens
   },
+  "gemini-2.0-flash": {
+    model: "gemini-2.0-flash",
+    provider: "google",
+    inputPrice: 0.0001, // $0.0001 per 1K tokens
+    outputPrice: 0.0004, // $0.0004 per 1K tokens
+  },
 };
 
 /**
@@ -101,7 +107,7 @@ export const DEFAULT_MODEL_PRICING: Record<string, ModelPricing> = {
  */
 export async function getModelPricing(model: string): Promise<ModelPricing> {
   const { prisma } = await import("@/lib/prisma");
-  
+
   try {
     // Tentar buscar do banco
     const setting = await prisma.systemSettings.findUnique({
@@ -143,14 +149,14 @@ export async function calculateTokenCost(
   model: string
 ): Promise<number> {
   const pricing = await getModelPricing(model);
-  
+
   // Proporção padrão: 70% input, 30% output
   const inputTokens = Math.round(tokens * 0.7);
   const outputTokens = Math.round(tokens * 0.3);
-  
+
   const inputCost = (inputTokens / 1000) * pricing.inputPrice;
   const outputCost = (outputTokens / 1000) * pricing.outputPrice;
-  
+
   return inputCost + outputCost;
 }
 
@@ -159,10 +165,10 @@ export async function calculateTokenCost(
  */
 export async function getAverageTokenCost(model: string): Promise<number> {
   const pricing = await getModelPricing(model);
-  
+
   // Média ponderada: 70% input, 30% output
   const avgPrice = (pricing.inputPrice * 0.7) + (pricing.outputPrice * 0.3);
-  
+
   // Converter para custo por token (dividir por 1000)
   return avgPrice / 1000;
 }

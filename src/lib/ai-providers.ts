@@ -35,14 +35,14 @@ export interface AICompletionResult {
 const PROVIDER_CONFIG = {
   openai: {
     // Modelo pode ser configurado via OPENAI_MODEL no .env
-    // Exemplos: gpt-4-turbo-preview, gpt-4, gpt-3.5-turbo
-    defaultModel: process.env.OPENAI_MODEL || "gpt-4-turbo-preview",
+    // Exemplos: gemini-2.0-flash, gpt-4, gpt-3.5-turbo
+    defaultModel: process.env.OPENAI_MODEL || "gemini-2.0-flash",
     maxTokens: 4000,
   },
   gemini: {
     // Modelo pode ser configurado via GEMINI_MODEL no .env
-    // Modelos disponíveis: gemini-pro, gemini-1.5-pro, gemini-1.5-flash, gemini-2.0-flash-exp, gemini-3-pro-preview
-    defaultModel: process.env.GEMINI_MODEL || "gemini-1.5-flash",
+    // Modelos disponíveis: gemini-pro, gemini-1.5-pro, gemini-1.5-flash, gemini-2.0-flash, gemini-2.0-flash-exp
+    defaultModel: process.env.GEMINI_MODEL || "gemini-2.0-flash",
     maxTokens: 8000,
   },
 };
@@ -135,18 +135,18 @@ async function callGemini(options: AICompletionOptions): Promise<AICompletionRes
 
   // Validar modelo Gemini (remover espaços e garantir formato correto)
   model = model.trim();
-  
+
   // Lista de modelos Gemini válidos
   const validModels = [
     "gemini-pro",
     "gemini-1.5-pro",
     "gemini-1.5-flash",
+    "gemini-2.0-flash",
     "gemini-2.0-flash-exp",
-    "gemini-3-pro-preview",
     "gemini-1.5-pro-latest",
     "gemini-1.5-flash-latest"
   ];
-  
+
   // Se o modelo não for válido, usar o default
   if (!validModels.includes(model)) {
     console.warn(`[Gemini] Modelo "${model}" não reconhecido, usando default: ${PROVIDER_CONFIG.gemini.defaultModel}`);
@@ -154,7 +154,7 @@ async function callGemini(options: AICompletionOptions): Promise<AICompletionRes
   }
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-  
+
   console.log(`[Gemini] Chamando API com modelo: ${model}`);
 
   // Monta o prompt combinando system + user
@@ -202,11 +202,11 @@ async function callGemini(options: AICompletionOptions): Promise<AICompletionRes
       console.error("[Gemini] Erro (texto):", errorText);
       errorMessage = errorText || errorMessage;
     }
-    
+
     console.error(`[Gemini] URL: ${url.replace(apiKey, "***")}`);
     console.error(`[Gemini] Model: ${model}`);
     console.error(`[Gemini] Status: ${response.status}`);
-    
+
     throw new Error(errorMessage);
   }
 
@@ -290,10 +290,10 @@ export async function createAICompletion(
   }
 
   // Se todos falharam, lançar erro com detalhes
-  const errorMessage = errors.length > 0 
+  const errorMessage = errors.length > 0
     ? `Todos os providers falharam:\n${errors.join("\n")}`
     : "Todos os providers de IA falharam";
-  
+
   throw lastError || new Error(errorMessage);
 }
 
