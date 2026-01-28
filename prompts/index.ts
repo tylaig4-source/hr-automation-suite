@@ -300,7 +300,7 @@ Gere a descrição da vaga seguindo esta estrutura:
 *Interessado? Candidate-se agora e faça parte do nosso time!*`,
     temperature: 0.7,
     maxTokens: 2000,
-    model: "gemini-2.5-pro-preview",
+    model: "gemini-3-pro-preview",
   },
 
   // RECRUTAMENTO - Analisador de Currículos
@@ -460,7 +460,7 @@ Gere um relatório completo de análise seguindo esta estrutura:
 **Justificativa:** [Parágrafo explicando a recomendação]`,
     temperature: 0.5,
     maxTokens: 2500,
-    model: "gemini-2.5-pro-preview",
+    model: "gemini-3-pro-preview",
   },
 
   // ONBOARDING - Plano de Onboarding
@@ -636,7 +636,7 @@ Gere o plano de onboarding completo seguindo a estrutura detalhada com:
 - Contatos importantes`,
     temperature: 0.6,
     maxTokens: 4000,
-    model: "gemini-2.5-pro-preview",
+    model: "gemini-3-pro-preview",
   },
 
   // TREINAMENTO - PDI
@@ -790,7 +790,7 @@ Gere um PDI completo com:
 - Termo de compromisso`,
     temperature: 0.6,
     maxTokens: 3500,
-    model: "gemini-2.5-pro-preview",
+    model: "gemini-3-pro-preview",
   },
 
   // AVALIAÇÃO - Formulário de Avaliação
@@ -921,7 +921,7 @@ Gere um formulário completo com:
 - Campos de assinatura`,
     temperature: 0.5,
     maxTokens: 3500,
-    model: "gemini-2.5-pro-preview",
+    model: "gemini-3-pro-preview",
   },
 
   // AVALIAÇÃO - Feedback Estruturado
@@ -1080,7 +1080,7 @@ Gere um feedback estruturado seguindo a metodologia selecionada, incluindo:
 - Resumo e próximos passos`,
     temperature: 0.6,
     maxTokens: 2500,
-    model: "gemini-2.5-pro-preview",
+    model: "gemini-3-pro-preview",
   },
 
   // DEPARTAMENTO PESSOAL - Comunicados
@@ -1212,7 +1212,7 @@ REGRAS:
 Gere um comunicado formatado e profissional adequado ao tipo e tom selecionados.`,
     temperature: 0.6,
     maxTokens: 1500,
-    model: "gemini-2.5-pro-preview",
+    model: "gemini-3-pro-preview",
   },
 
   // DESLIGAMENTO - Entrevista de Desligamento
@@ -1337,7 +1337,7 @@ Gere um roteiro completo de exit interview com:
 - Formulário de registro para o entrevistador`,
     temperature: 0.5,
     maxTokens: 3500,
-    model: "gemini-2.5-pro-preview",
+    model: "gemini-3-pro-preview",
   },
   // RECRUTAMENTO - Gerador de Perguntas de Entrevista
   {
@@ -1474,7 +1474,7 @@ Gere o roteiro completo contendo:
 7. **Ficha de Avaliação:** Critérios claros para pontuar as respostas.`,
     temperature: 0.6,
     maxTokens: 3000,
-    model: "gemini-2.5-pro-preview",
+    model: "gemini-3-pro-preview",
   },
 
   // RECRUTAMENTO - Avaliador de Fit Cultural
@@ -1586,7 +1586,7 @@ Gere o framework contendo:
 6. **Guia de Interpretação:** Como diferenciar diversidade de desalinhamento.`,
     temperature: 0.6,
     maxTokens: 2500,
-    model: "gemini-2.5-pro-preview",
+    model: "gemini-3-pro-preview",
   },
 
   // RECRUTAMENTO - Criador de Testes Técnicos
@@ -1727,7 +1727,7 @@ Gere a avaliação contendo:
 4. **Tabela de Interpretação:** Como classificar o candidato baseada na nota.`,
     temperature: 0.5,
     maxTokens: 3500,
-    model: "gemini-2.5-pro-preview",
+    model: "gemini-3-pro-preview",
   },
 
   // RECRUTAMENTO - Gerador de Feedback de Candidatos
@@ -1855,7 +1855,7 @@ Gere a comunicação completa (formato e-mail) contendo:
 4. **Fechamento:** Profissional e assinatura.`,
     temperature: 0.6,
     maxTokens: 1500,
-    model: "gemini-2.5-pro-preview",
+    model: "gemini-3-pro-preview",
   },
   // ONBOARDING - Gerador de Checklists de Integração
   {
@@ -1968,7 +1968,7 @@ Gere o checklist contendo:
 4. **Campos de Validação:** Espaço para data e assinatura (se aplicável).`,
     temperature: 0.5,
     maxTokens: 2500,
-    model: "gemini-2.5-pro-preview",
+    model: "gemini-3-pro-preview",
   },
 
   // ONBOARDING - Criador de Manuais do Colaborador
@@ -2082,7 +2082,7 @@ Gere o manual contendo:
 8. **Termo de Recebimento:** Texto padrão para ciência.`,
     temperature: 0.6,
     maxTokens: 4000,
-    model: "gemini-2.5-pro-preview",
+    model: "gemini-3-pro-preview",
   },
 
   // ONBOARDING - Gerador de Cronogramas de Treinamento
@@ -2204,7 +2204,7 @@ Gere o cronograma contendo:
 6. **Certificações:** Se aplicável.`,
     temperature: 0.5,
     maxTokens: 3000,
-    model: "gemini-2.5-pro-preview",
+    model: "gemini-3-pro-preview",
   },
   // TREINAMENTO - Gerador de Conteúdos de Treinamento
   {
@@ -2321,7 +2321,7 @@ Gere o material contendo:
 6. **Material de Apoio:** Sugestões de leituras ou vídeos complementares.`,
     temperature: 0.6,
     maxTokens: 3500,
-    model: "gemini-2.5-pro-preview",
+    model: "gemini-3-pro-preview",
   },
 
   // TREINAMENTO - Avaliador de Necessidades de Capacitação
@@ -2428,7 +2428,7 @@ Gere o diagnóstico contendo:
 5. **ROI Esperado:** Como medir se funcionou (Indicadores).`,
     temperature: 0.6,
     maxTokens: 3000,
-    model: "gemini-2.5-pro-preview",
+    model: "gemini-3-pro-preview",
   },
 
   // TREINAMENTO - Criador de Trilhas de Aprendizagem
@@ -2536,7 +2536,7 @@ Gere a trilha contendo:
 5. **Certificação:** Critérios para conclusão.`,
     temperature: 0.6,
     maxTokens: 3000,
-    model: "gemini-2.5-pro-preview",
+    model: "gemini-3-pro-preview",
   },
 
   // AVALIAÇÃO - Gerador de Feedbacks Estruturados
@@ -2665,7 +2665,7 @@ Gere o roteiro contendo:
 6. **Fechamento:** Como encerrar positivamente.`,
     temperature: 0.6,
     maxTokens: 2500,
-    model: "gemini-2.5-pro-preview",
+    model: "gemini-3-pro-preview",
   },
 
   // AVALIAÇÃO - Analisador de Performance
@@ -2772,7 +2772,7 @@ Gere o relatório de análise contendo:
 6. **Recomendações:** Ações sugeridas para o gestor e para o colaborador.`,
     temperature: 0.5,
     maxTokens: 3000,
-    model: "gemini-2.5-pro-preview",
+    model: "gemini-3-pro-preview",
   },
 
   // AVALIAÇÃO - Criador de Metas SMART
@@ -2868,7 +2868,7 @@ Gere o plano de metas contendo:
 5. **Possíveis Obstáculos:** O que pode atrapalhar e como mitigar.`,
     temperature: 0.6,
     maxTokens: 2000,
-    model: "gemini-2.5-pro-preview",
+    model: "gemini-3-pro-preview",
   },
   // CLIMA E CULTURA - Pesquisa de Clima
   {
@@ -2963,7 +2963,7 @@ Gere a pesquisa contendo:
 5. **Agradecimento:** Mensagem final.`,
     temperature: 0.5,
     maxTokens: 3000,
-    model: "gemini-2.5-pro-preview",
+    model: "gemini-3-pro-preview",
   },
 
   // CLIMA E CULTURA - Plano de Ação de Clima
@@ -3053,7 +3053,7 @@ Gere o plano de ação contendo:
 6. **Indicadores de Sucesso:** Como saberemos se melhorou.`,
     temperature: 0.6,
     maxTokens: 3000,
-    model: "gemini-2.5-pro-preview",
+    model: "gemini-3-pro-preview",
   },
 
   // CLIMA E CULTURA - Comunicados de Cultura
@@ -3146,7 +3146,7 @@ Gere o material contendo:
 5. **Call to Action:** O que o colaborador deve fazer.`,
     temperature: 0.7,
     maxTokens: 2500,
-    model: "gemini-2.5-pro-preview",
+    model: "gemini-3-pro-preview",
   },
 
   // CLIMA E CULTURA - Ações de Engajamento
@@ -3252,7 +3252,7 @@ Gere a sugestão contendo:
 6. **Dicas de Facilitação:** Como lidar com silêncio ou resistência.`,
     temperature: 0.7,
     maxTokens: 2500,
-    model: "gemini-2.5-pro-preview",
+    model: "gemini-3-pro-preview",
   },
 
   // REMUNERAÇÃO - Criador de Faixas Salariais
@@ -3345,7 +3345,7 @@ Gere a estrutura da faixa contendo:
 4. **Análise de Competitividade:** Comentário sobre como essa faixa se posiciona na estratégia escolhida.`,
     temperature: 0.4,
     maxTokens: 2000,
-    model: "gemini-2.5-pro-preview",
+    model: "gemini-3-pro-preview",
   },
 
   // REMUNERAÇÃO - Calculadora de Benefícios
@@ -3426,7 +3426,7 @@ Gere o demonstrativo contendo:
 5. **Carta de Valorização:** Texto para entregar ao colaborador explicando seu pacote total.`,
     temperature: 0.5,
     maxTokens: 2000,
-    model: "gemini-2.5-pro-preview",
+    model: "gemini-3-pro-preview",
   },
 
   // REMUNERAÇÃO - Gerador de Propostas Salariais
@@ -3526,7 +3526,7 @@ Gere a carta contendo:
 6. **Encerramento:** Boas-vindas antecipadas.`,
     temperature: 0.6,
     maxTokens: 2000,
-    model: "gemini-2.5-pro-preview",
+    model: "gemini-3-pro-preview",
   },
 
   // REMUNERAÇÃO - Analisador de Equidade Salarial
@@ -3605,7 +3605,7 @@ Gere o relatório contendo:
 6. **Recomendações de Governança:** Como evitar que isso aconteça novamente.`,
     temperature: 0.5,
     maxTokens: 3000,
-    model: "gemini-2.5-pro-preview",
+    model: "gemini-3-pro-preview",
   },
 
   // DEPARTAMENTO PESSOAL - Gerador de Políticas Internas
@@ -3705,7 +3705,7 @@ Gere o documento contendo:
 7. **Disposições Finais:** Vigência e dúvidas.`,
     temperature: 0.5,
     maxTokens: 3000,
-    model: "gemini-2.5-pro-preview",
+    model: "gemini-3-pro-preview",
   },
 
   // DEPARTAMENTO PESSOAL - Respositor de Dúvidas Trabalhistas
@@ -3781,7 +3781,7 @@ Gere a resposta contendo:
 5. **Recomendação:** O que fazer agora.`,
     temperature: 0.4,
     maxTokens: 1500,
-    model: "gemini-2.5-pro-preview",
+    model: "gemini-3-pro-preview",
   },
 
   // DEPARTAMENTO PESSOAL - Gerador de Documentos Oficiais
@@ -3868,7 +3868,7 @@ Gere o documento pronto para impressão contendo:
 6. **Rodapé:** Data e local.`,
     temperature: 0.4,
     maxTokens: 2000,
-    model: "gemini-2.5-pro-preview",
+    model: "gemini-3-pro-preview",
   },
 
   // DESLIGAMENTO - Comunicado de Desligamento
@@ -3967,7 +3967,7 @@ Gere o comunicado contendo:
 5. **Mensagem Final:** Desejos de sucesso.`,
     temperature: 0.6,
     maxTokens: 1000,
-    model: "gemini-2.5-pro-preview",
+    model: "gemini-3-pro-preview",
   },
 
   // DESLIGAMENTO - Checklist de Offboarding
@@ -4056,7 +4056,7 @@ Gere o checklist organizado por:
 4. **Pós-Desligamento:** O que conferir depois que a pessoa saiu.`,
     temperature: 0.5,
     maxTokens: 2000,
-    model: "gemini-2.5-pro-preview",
+    model: "gemini-3-pro-preview",
   },
 
   // DESLIGAMENTO - Carta de Referência
@@ -4151,7 +4151,7 @@ Gere a carta contendo:
 5. **Contato:** Seus dados para verificação.`,
     temperature: 0.6,
     maxTokens: 1500,
-    model: "gemini-2.5-pro-preview",
+    model: "gemini-3-pro-preview",
   },
 ];
 

@@ -100,8 +100,8 @@ export const DEFAULT_MODEL_PRICING: Record<string, ModelPricing> = {
     inputPrice: 0.0001, // $0.0001 per 1K tokens
     outputPrice: 0.0004, // $0.0004 per 1K tokens
   },
-  "gemini-2.5-pro-preview": {
-    model: "gemini-2.5-pro-preview",
+  "gemini-3-pro-preview": {
+    model: "gemini-3-pro-preview",
     provider: "google",
     inputPrice: 0.00125, // $0.00125 per 1K tokens
     outputPrice: 0.005, // $0.005 per 1K tokens
