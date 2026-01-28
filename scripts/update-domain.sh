@@ -28,26 +28,50 @@ fi
 
 echo -e "\n${BLUE}Atualizando configurações...${NC}"
 
-# Backup do .env
-cp .env .env.backup
-echo "Backup criado em .env.backup"
+# Função para atualizar arquivo
+update_file() {
+    local file=$1
+    local domain=$2
+    
+    if [ -f "$file" ]; then
+        echo "Atualizando $file..."
+        # Backup
+        cp "$file" "$file.backup"
+        
+        # NEXTAUTH_URL
+        if grep -q "NEXTAUTH_URL=" "$file"; then
+            sed -i "s|NEXTAUTH_URL=.*|NEXTAUTH_URL=$domain|" "$file"
+        else
+            echo "NEXTAUTH_URL=$domain" >> "$file"
+        fi
 
-# Atualizar variáveis no .env usando sed
-# NEXTAUTH_URL
-if grep -q "NEXTAUTH_URL=" .env; then
-    sed -i "s|NEXTAUTH_URL=.*|NEXTAUTH_URL=$NEW_DOMAIN|" .env
-else
-    echo "NEXTAUTH_URL=$NEW_DOMAIN" >> .env
-fi
+        # NEXT_PUBLIC_APP_URL
+        if grep -q "NEXT_PUBLIC_APP_URL=" "$file"; then
+            sed -i "s|NEXT_PUBLIC_APP_URL=.*|NEXT_PUBLIC_APP_URL=$domain|" "$file"
+        else
+            echo "NEXT_PUBLIC_APP_URL=$domain" >> "$file"
+        fi
+        
+        # DOMAIN (usado por scripts)
+        if grep -q "DOMAIN=" "$file"; then
+             sed -i "s|DOMAIN=.*|DOMAIN=$domain|" "$file"
+        fi
+        
+        # APP_URL (usado por scripts)
+        if grep -q "APP_URL=" "$file"; then
+             sed -i "s|APP_URL=.*|APP_URL=$domain|" "$file"
+        fi
+    fi
+}
 
-# NEXT_PUBLIC_APP_URL
-if grep -q "NEXT_PUBLIC_APP_URL=" .env; then
-    sed -i "s|NEXT_PUBLIC_APP_URL=.*|NEXT_PUBLIC_APP_URL=$NEW_DOMAIN|" .env
-else
-    echo "NEXT_PUBLIC_APP_URL=$NEW_DOMAIN" >> .env
-fi
+echo -e "\n${BLUE}Atualizando configurações...${NC}"
 
-echo -e "${GREEN}Arquivo .env atualizado com sucesso!${NC}"
+# Atualizar todos os arquivos de env possíveis
+update_file ".env" "$NEW_DOMAIN"
+update_file ".env.local" "$NEW_DOMAIN"
+update_file ".env.production" "$NEW_DOMAIN"
+
+echo -e "${GREEN}Arquivos de ambiente atualizados!${NC}"
 
 # Perguntar sobre rebuild
 echo -e "\n${BLUE}Deseja reconstruir (build) e reiniciar a aplicação agora? (S/n)${NC}"
