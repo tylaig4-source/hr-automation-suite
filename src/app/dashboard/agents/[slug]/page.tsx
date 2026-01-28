@@ -39,8 +39,6 @@ export default function AgentPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [selectedProvider, setSelectedProvider] = useState<string>("auto");
-  const [providers, setProviders] = useState<ProviderInfo[]>([]);
   const [usedProvider, setUsedProvider] = useState<string | null>(null);
 
   // Carregar agente da API
@@ -63,19 +61,6 @@ export default function AgentPage() {
       })
       .finally(() => setLoadingAgent(false));
   }, [slug]);
-
-  // Carrega providers disponíveis
-  useEffect(() => {
-    fetch("/api/providers")
-      .then((res) => res.json())
-      .then((data) => {
-        setProviders(data.providers || []);
-        if (data.default) {
-          setSelectedProvider("auto");
-        }
-      })
-      .catch(console.error);
-  }, []);
 
   if (loadingAgent) {
     return (
@@ -115,7 +100,7 @@ export default function AgentPage() {
       const response = await fetch(`/api/execute/${slug}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ inputs, provider: selectedProvider }),
+        body: JSON.stringify({ inputs, provider: "auto" }),
       });
 
       const result = await response.json();
@@ -128,7 +113,7 @@ export default function AgentPage() {
       setUsedProvider(result.provider);
       toast({
         title: "Sucesso!",
-        description: `Gerado em ${result.executionTimeMs}ms via ${result.provider.toUpperCase()}`,
+        description: `Gerado em ${result.executionTimeMs}ms`,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro desconhecido");
@@ -276,37 +261,6 @@ export default function AgentPage() {
                 )}
               </div>
             ))}
-
-            {/* Provider Selection */}
-            {providers.length > 0 && (
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2">
-                  <Cpu className="h-4 w-4" />
-                  Modelo de IA
-                </Label>
-                <Select
-                  value={selectedProvider}
-                  onValueChange={setSelectedProvider}
-                  disabled={isLoading}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o modelo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {providers.filter(p => p.available).map((provider) => (
-                      <SelectItem key={provider.id} value={provider.id}>
-                        <div className="flex flex-col">
-                          <span>{provider.name}</span>
-                          <span className="text-xs text-muted-foreground">
-                            {provider.description}
-                          </span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
 
             {error && (
               <Alert variant="destructive">
