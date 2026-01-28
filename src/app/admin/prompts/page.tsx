@@ -63,7 +63,7 @@ export default async function AdminPromptsPage() {
                 <div className="flex gap-4">
                     <SyncAgentsButton />
                     <Button asChild>
-                        <Link href="/admin/prompts/new">Criar Novo Agente</Link>
+                        <Link href="/admin/prompts/create">Criar Novo Agente</Link>
                     </Button>
                 </div>
             </div>

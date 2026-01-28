@@ -181,7 +181,7 @@ export function CreateAgentForm({ categories }: CreateAgentFormProps) {
                             <Checkbox
                                 id="premium"
                                 checked={formData.isPremium}
-                                onCheckedChange={(checked) => setFormData({ ...formData, isPremium: !!checked })}
+                                onCheckedChange={(checked: boolean | "indeterminate") => setFormData({ ...formData, isPremium: !!checked })}
                             />
                             <Label htmlFor="premium" className="cursor-pointer">
                                 Agente Premium?
