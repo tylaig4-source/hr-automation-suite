@@ -17,6 +17,8 @@ import { signOut } from "next-auth/react";
 import { getAbsoluteUrl } from "@/lib/url";
 import Link from "next/link";
 import { AdminMobileSidebar } from "./admin-mobile-sidebar";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 
 interface AdminHeaderProps {
   user: {
@@ -67,16 +69,10 @@ export function AdminHeader({ user }: AdminHeaderProps) {
         {/* Actions */}
         <div className="flex items-center gap-2 sm:gap-4">
           {/* Notifications */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="relative"
-          >
-            <Bell className="h-5 w-5" />
-            <span className="absolute -top-1 -right-1 w-4 h-4 bg-destructive rounded-full text-[10px] font-bold flex items-center justify-center text-white">
-              3
-            </span>
-          </Button>
+          <NotificationBell />
+
+          {/* Theme Toggle */}
+          <ThemeToggle />
 
           {/* Settings */}
           <Button
