@@ -114,10 +114,10 @@ export function AdminSidebar() {
         </nav>
 
         {/* Footer */}
-        <div className="border-t border-white/10 p-4">
+        <div className="border-t border-border p-4">
           <Link
             href="/dashboard"
-            className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-gray-400 hover:bg-white/5 hover:text-white transition-all duration-200"
+            className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-all duration-200"
           >
             <ArrowLeft className="h-5 w-5" />
             <span>Voltar ao Dashboard</span>

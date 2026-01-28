@@ -104,17 +104,17 @@ export function AdminHeader({ user }: AdminHeaderProps) {
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
                   <p className="text-sm font-medium">{user.name || "Admin"}</p>
-                  <p className="text-xs text-gray-400">{user.email}</p>
+                  <p className="text-xs text-muted-foreground">{user.email}</p>
                 </div>
               </DropdownMenuLabel>
-              <DropdownMenuSeparator className="bg-white/10" />
-              <DropdownMenuItem asChild className="cursor-pointer hover:bg-white/5">
+              <DropdownMenuSeparator className="bg-border" />
+              <DropdownMenuItem asChild className="cursor-pointer hover:bg-accent">
                 <Link href="/admin/settings">Configurações</Link>
               </DropdownMenuItem>
-              <DropdownMenuSeparator className="bg-white/10" />
+              <DropdownMenuSeparator className="bg-border" />
               <DropdownMenuItem
                 onClick={() => signOut({ callbackUrl: getAbsoluteUrl("/login") })}
-                className="text-red-400 hover:text-red-300 hover:bg-red-500/10 cursor-pointer"
+                className="text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10 cursor-pointer"
               >
                 Sair
               </DropdownMenuItem>
