@@ -104,7 +104,6 @@ if [ "$DOCKER_CMD" = "docker" ]; then
 else
     if ! command -v podman-compose &> /dev/null; then
         print_warning "podman-compose não encontrado, tentando instalar..."
-        # Tentar instalar podman-compose
         if command -v pip3 &> /dev/null; then
             pip3 install podman-compose --user 2>/dev/null || true
         fi
@@ -132,16 +131,52 @@ if [ ! -f "package.json" ]; then
     exit 1
 fi
 
-npm install
+npm install --legacy-peer-deps
 print_success "Dependências instaladas"
 
 # ==========================================
-# 3. Criar arquivo .env.local
+# 3. Perguntar sobre domínio
+# ==========================================
+print_step "Configuração de Domínio..."
+
+echo ""
+read -p "Você tem um domínio configurado? (s/N): " -n 1 -r
+echo
+if [[ $REPLY =~ ^[Ss]$ ]]; then
+    read -p "Digite seu domínio (ex: app.seudominio.com): " DOMAIN
+    if [ -z "$DOMAIN" ]; then
+        print_warning "Domínio vazio, usando localhost"
+        DOMAIN="localhost"
+        APP_URL="http://localhost:3000"
+        USE_SSL=false
+    else
+        print_success "Domínio configurado: $DOMAIN"
+        APP_URL="https://$DOMAIN"
+        
+        read -p "Deseja configurar SSL com Let's Encrypt? (S/n): " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Nn]$ ]]; then
+            USE_SSL=true
+            read -p "Digite seu email para o certificado SSL: " SSL_EMAIL
+        else
+            USE_SSL=false
+            APP_URL="http://$DOMAIN"
+        fi
+    fi
+else
+    print_info "Usando localhost para desenvolvimento"
+    DOMAIN="localhost"
+    APP_URL="http://localhost:3000"
+    USE_SSL=false
+fi
+
+# ==========================================
+# 4. Criar arquivo .env.local
 # ==========================================
 print_step "Configurando variáveis de ambiente..."
 
 if [ -f ".env.local" ]; then
-    print_warning ".env.local já existe, pulando criação"
+    print_warning ".env.local já existe"
     read -p "Deseja sobrescrever? (s/N): " -n 1 -r
     echo
     if [[ ! $REPLY =~ ^[Ss]$ ]]; then
@@ -159,7 +194,6 @@ if [ "$SKIP_ENV" = false ]; then
     if command -v openssl &> /dev/null; then
         NEXTAUTH_SECRET=$(openssl rand -base64 32)
     else
-        # Fallback: usar /dev/urandom
         NEXTAUTH_SECRET=$(head -c 32 /dev/urandom | base64 | tr -d '\n')
     fi
 
@@ -183,7 +217,7 @@ REDIS_PASSWORD="redis_secret_2024"
 # --------------------------------------------
 # AUTENTICAÇÃO (NextAuth.js)
 # --------------------------------------------
-NEXTAUTH_URL="http://localhost:3000"
+NEXTAUTH_URL="${APP_URL}"
 NEXTAUTH_SECRET="${NEXTAUTH_SECRET}"
 
 # --------------------------------------------
@@ -198,8 +232,9 @@ NEXTAUTH_SECRET="${NEXTAUTH_SECRET}"
 # --------------------------------------------
 # APLICAÇÃO
 # --------------------------------------------
-NODE_ENV="development"
-APP_URL="http://localhost:3000"
+NODE_ENV="production"
+APP_URL="${APP_URL}"
+DOMAIN="${DOMAIN}"
 
 # --------------------------------------------
 # RATE LIMITING (Opcional)
@@ -209,12 +244,14 @@ MAX_TOKENS_PER_REQUEST=4000
 EOF
 
     print_success ".env.local criado"
-    print_warning "⚠️  IMPORTANTE: Configure suas API keys no arquivo .env.local:"
-    print_info "   - OPENAI_API_KEY ou GEMINI_API_KEY (pelo menos uma é necessária)"
+    print_warning "⚠️  IMPORTANTE: Configure suas API keys no arquivo .env.local"
 fi
 
+# Exportar variáveis para os próximos passos
+export $(grep -v '^#' .env.local | xargs)
+
 # ==========================================
-# 4. Verificar se Docker está rodando
+# 5. Verificar se Docker está rodando
 # ==========================================
 print_step "Verificando Docker/Podman..."
 
@@ -232,11 +269,10 @@ else
 fi
 
 # ==========================================
-# 5. Subir Containers Docker
+# 6. Subir Containers Docker
 # ==========================================
 print_step "Iniciando containers Docker..."
 
-# Verificar se containers já estão rodando
 if [ -n "$DOCKER_COMPOSE_CMD" ]; then
     if $DOCKER_COMPOSE_CMD ps 2>/dev/null | grep -q "Up\|running"; then
         print_warning "Containers já estão rodando"
@@ -250,7 +286,6 @@ if [ -n "$DOCKER_COMPOSE_CMD" ]; then
         $DOCKER_COMPOSE_CMD up -d
     fi
 else
-    # Usar script docker-podman.sh se existir
     if [ -f "docker-podman.sh" ]; then
         chmod +x docker-podman.sh
         ./docker-podman.sh
@@ -264,7 +299,7 @@ fi
 print_success "Containers iniciados"
 
 # ==========================================
-# 6. Aguardar containers ficarem prontos
+# 7. Aguardar containers ficarem prontos
 # ==========================================
 print_step "Aguardando containers ficarem prontos..."
 
@@ -326,7 +361,7 @@ if [ $WAIT_COUNT -ge $MAX_WAIT ]; then
 fi
 
 # ==========================================
-# 7. Configurar Banco de Dados
+# 8. Configurar Banco de Dados
 # ==========================================
 print_step "Configurando banco de dados..."
 
@@ -341,7 +376,7 @@ npm run db:push
 print_success "Schema sincronizado"
 
 # ==========================================
-# 8. Popular dados iniciais (Seed)
+# 9. Popular dados iniciais (Seed)
 # ==========================================
 print_step "Populando dados iniciais..."
 
@@ -352,7 +387,133 @@ else
 fi
 
 # ==========================================
-# 9. Verificar API Keys
+# 10. Build da aplicação
+# ==========================================
+print_step "Fazendo build da aplicação..."
+
+npm run build
+print_success "Build concluído"
+
+# ==========================================
+# 11. Configurar PM2
+# ==========================================
+print_step "Configurando PM2..."
+
+if ! command -v pm2 &> /dev/null; then
+    print_info "Instalando PM2..."
+    sudo npm install -g pm2
+fi
+
+# Criar ecosystem.config.js
+cat > ecosystem.config.js << EOF
+module.exports = {
+  apps: [{
+    name: 'hr-automation-suite',
+    script: 'node_modules/next/dist/bin/next',
+    args: 'start',
+    cwd: '$(pwd)',
+    instances: 1,
+    exec_mode: 'fork',
+    env: {
+      NODE_ENV: 'production',
+      PORT: 3000,
+    },
+    error_file: './logs/err.log',
+    out_file: './logs/out.log',
+    log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+    merge_logs: true,
+    autorestart: true,
+    max_memory_restart: '1G',
+  }]
+};
+EOF
+
+mkdir -p logs
+print_success "PM2 configurado"
+
+# ==========================================
+# 12. Configurar Nginx + SSL (se aplicável)
+# ==========================================
+if [ "$DOMAIN" != "localhost" ]; then
+    print_step "Configurando Nginx..."
+    
+    # Verificar se Nginx está instalado
+    if ! command -v nginx &> /dev/null; then
+        print_info "Instalando Nginx..."
+        sudo apt update && sudo apt install -y nginx
+    fi
+    
+    # Criar configuração Nginx
+    sudo tee /etc/nginx/sites-available/hr-automation-suite > /dev/null << EOF
+server {
+    listen 80;
+    server_name $DOMAIN;
+
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_cache_bypass \$http_upgrade;
+        
+        # Timeouts para conexões longas
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+    }
+}
+EOF
+    
+    # Ativar site
+    sudo ln -sf /etc/nginx/sites-available/hr-automation-suite /etc/nginx/sites-enabled/
+    sudo rm -f /etc/nginx/sites-enabled/default 2>/dev/null || true
+    
+    # Testar e reiniciar Nginx
+    if sudo nginx -t; then
+        sudo systemctl restart nginx
+        print_success "Nginx configurado para $DOMAIN"
+    else
+        print_error "Erro na configuração do Nginx"
+    fi
+    
+    # Configurar SSL com Let's Encrypt
+    if [ "$USE_SSL" = true ] && [ -n "$SSL_EMAIL" ]; then
+        print_step "Configurando SSL com Let's Encrypt..."
+        
+        # Instalar Certbot se necessário
+        if ! command -v certbot &> /dev/null; then
+            print_info "Instalando Certbot..."
+            sudo apt install -y certbot python3-certbot-nginx
+        fi
+        
+        # Obter certificado
+        if sudo certbot --nginx -d "$DOMAIN" --email "$SSL_EMAIL" --agree-tos --non-interactive; then
+            print_success "Certificado SSL instalado!"
+            print_info "O certificado será renovado automaticamente"
+        else
+            print_error "Erro ao obter certificado SSL"
+            print_info "Verifique se o domínio está apontando para este servidor"
+        fi
+    fi
+fi
+
+# ==========================================
+# 13. Iniciar aplicação
+# ==========================================
+print_step "Iniciando aplicação com PM2..."
+
+pm2 start ecosystem.config.js
+pm2 save
+pm2 startup 2>/dev/null || true
+
+print_success "Aplicação iniciada!"
+
+# ==========================================
+# 14. Verificar API Keys
 # ==========================================
 print_step "Verificando configuração..."
 
@@ -365,49 +526,40 @@ else
     print_info "Configure pelo menos uma no arquivo .env.local:"
     print_info "   - OPENAI_API_KEY=\"sk-...\""
     print_info "   - GEMINI_API_KEY=\"...\""
-    print_info ""
-    print_info "Sem uma API Key, os agentes não funcionarão."
 fi
 
 # ==========================================
-# 10. Resumo Final
+# 15. Resumo Final
 # ==========================================
 echo ""
 echo -e "${GREEN}╔════════════════════════════════════════════════════════════════╗${NC}"
 echo -e "${GREEN}║                    🚀 INSTALAÇÃO CONCLUÍDA!                   ║${NC}"
 echo -e "${GREEN}╠════════════════════════════════════════════════════════════════╣${NC}"
 echo -e "${GREEN}║                                                                ║${NC}"
-echo -e "${GREEN}║  📋 Próximos passos:                                          ║${NC}"
-echo -e "${GREEN}║                                                                ║${NC}"
 
-if ! grep -q "^OPENAI_API_KEY=\"sk-" .env.local 2>/dev/null && \
-   ! (grep -q "^GEMINI_API_KEY=\"" .env.local 2>/dev/null && ! grep -q "^# GEMINI_API_KEY" .env.local 2>/dev/null); then
-    echo -e "${YELLOW}║  1. Configure suas API keys no arquivo .env.local:           ║${NC}"
-    echo -e "${YELLOW}║     - OPENAI_API_KEY ou GEMINI_API_KEY                       ║${NC}"
-    echo -e "${GREEN}║                                                                ║${NC}"
+if [ "$DOMAIN" != "localhost" ]; then
+    echo -e "${GREEN}║  🌐 Acesse: ${BLUE}${APP_URL}${NC}"
+else
+    echo -e "${GREEN}║  🌐 Acesse: ${BLUE}http://localhost:3000${NC}"
 fi
 
-echo -e "${GREEN}║  2. Inicie o servidor:                                        ║${NC}"
-echo -e "${GREEN}║     ${BLUE}npm run dev${GREEN}                                                  ║${NC}"
 echo -e "${GREEN}║                                                                ║${NC}"
-echo -e "${GREEN}║  3. Acesse: ${BLUE}http://localhost:3000${GREEN}                                  ║${NC}"
+echo -e "${GREEN}║  📝 Credenciais padrão:                                       ║${NC}"
+echo -e "${GREEN}║     Email: ${BLUE}admin@demo.com${NC}"
+echo -e "${GREEN}║     Senha: ${BLUE}demo123${NC}"
 echo -e "${GREEN}║                                                                ║${NC}"
-echo -e "${GREEN}║  📝 Credenciais padrão (após seed):                           ║${NC}"
-echo -e "${GREEN}║     Email: ${BLUE}admin@demo.com${GREEN}                                        ║${NC}"
-echo -e "${GREEN}║     Senha: ${BLUE}demo123${GREEN}                                               ║${NC}"
-echo -e "${GREEN}║                                                                ║${NC}"
-echo -e "${GREEN}║  🐳 Containers Docker:                                        ║${NC}"
-echo -e "${GREEN}║     PostgreSQL: ${BLUE}localhost:5432${GREEN}                                   ║${NC}"
-echo -e "${GREEN}║     Redis: ${BLUE}localhost:6379${GREEN}                                       ║${NC}"
+echo -e "${GREEN}║  🛠️  Comandos úteis:                                           ║${NC}"
+echo -e "${GREEN}║     ${BLUE}pm2 status${GREEN} - Ver status da aplicação${NC}"
+echo -e "${GREEN}║     ${BLUE}pm2 logs${GREEN} - Ver logs${NC}"
+echo -e "${GREEN}║     ${BLUE}./update.sh${GREEN} - Atualizar aplicação${NC}"
 echo -e "${GREEN}║                                                                ║${NC}"
 echo -e "${GREEN}╚════════════════════════════════════════════════════════════════╝${NC}"
 echo ""
 
-# Perguntar se deseja iniciar o servidor
-read -p "Deseja iniciar o servidor agora? (S/n): " -n 1 -r
-echo
-if [[ ! $REPLY =~ ^[Nn]$ ]]; then
-    print_step "Iniciando servidor de desenvolvimento..."
-    npm run dev
-fi
+# Salvar configuração de domínio para uso futuro
+echo "DOMAIN=$DOMAIN" > .domain.conf
+echo "APP_URL=$APP_URL" >> .domain.conf
+echo "USE_SSL=$USE_SSL" >> .domain.conf
+[ -n "$SSL_EMAIL" ] && echo "SSL_EMAIL=$SSL_EMAIL" >> .domain.conf
 
+print_success "Configuração salva em .domain.conf"
