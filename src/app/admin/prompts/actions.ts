@@ -42,6 +42,48 @@ export async function updateAgentPrompt(
     }
 }
 
+export async function createAgent(data: {
+    name: string;
+    slug: string;
+    description: string;
+    categoryId: string;
+    isPremium: boolean;
+    estimatedTimeSaved: number;
+}) {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) throw new Error("Não autorizado");
+
+    try {
+        const agent = await prisma.agent.create({
+            data: {
+                name: data.name,
+                slug: data.slug,
+                description: data.description,
+                categoryId: data.categoryId,
+                isPremium: data.isPremium,
+                estimatedTimeSaved: data.estimatedTimeSaved,
+                // Defaults
+                model: "gemini-1.5-pro",
+                shortDescription: data.description.substring(0, 100),
+                systemPrompt: "",
+                promptTemplate: "",
+                inputSchema: { fields: [] },
+                temperature: 0.7,
+                maxTokens: 2000,
+            },
+        });
+
+        revalidatePath("/admin/prompts");
+        return { success: true, agentId: agent.id };
+    } catch (error: any) {
+        console.error("Erro ao criar agente:", error);
+        if (error.code === 'P2002') {
+            return { success: false, error: "Já existe um agente com este slug." };
+        }
+        return { success: false, error: "Erro ao criar agente" };
+    }
+}
+
 import { allAgents, categories } from "../../../../prompts";
 
 export async function syncStaticAgents() {
