@@ -240,62 +240,9 @@ async function callGemini(options: AICompletionOptions): Promise<AICompletionRes
 export async function createAICompletion(
   options: AICompletionOptions
 ): Promise<AICompletionResult> {
-  const provider = options.provider || "auto";
-
-  // Provider específico
-  if (provider === "openai") {
-    return callOpenAI(options);
-  }
-
-  if (provider === "gemini") {
-    return callGemini(options);
-  }
-
-  // Auto: tenta providers na ordem de preferência
-  const providers: AIProvider[] = [];
-
-  // Define ordem baseado nas keys disponíveis
-  if (process.env.OPENAI_API_KEY) {
-    providers.push("openai");
-  }
-  if (process.env.GEMINI_API_KEY) {
-    providers.push("gemini");
-  }
-
-  if (providers.length === 0) {
-    throw new Error(
-      "Nenhum provider de IA configurado. Configure OPENAI_API_KEY ou GEMINI_API_KEY."
-    );
-  }
-
-  let lastError: Error | null = null;
-  const errors: string[] = [];
-
-  for (const p of providers) {
-    try {
-      console.log(`[AI] Tentando provider: ${p}`);
-
-      if (p === "openai") {
-        return await callOpenAI(options);
-      }
-      if (p === "gemini") {
-        return await callGemini(options);
-      }
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : String(error);
-      console.error(`[AI] Erro com provider ${p}:`, errorMsg);
-      errors.push(`${p}: ${errorMsg}`);
-      lastError = error as Error;
-      // Continua para o próximo provider
-    }
-  }
-
-  // Se todos falharam, lançar erro com detalhes
-  const errorMessage = errors.length > 0
-    ? `Todos os providers falharam:\n${errors.join("\n")}`
-    : "Todos os providers de IA falharam";
-
-  throw lastError || new Error(errorMessage);
+  // ENFORCED: Always use Gemini
+  // Ignore options.provider and always route to Gemini
+  return callGemini(options);
 }
 
 // ==========================================
@@ -336,7 +283,7 @@ export function estimateTokens(text: string): number {
  */
 export function getAvailableProviders(): AIProvider[] {
   const providers: AIProvider[] = [];
-  if (process.env.OPENAI_API_KEY) providers.push("openai");
+  // if (process.env.OPENAI_API_KEY) providers.push("openai");
   if (process.env.GEMINI_API_KEY) providers.push("gemini");
   return providers;
 }
