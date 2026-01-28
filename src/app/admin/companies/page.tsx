@@ -2,9 +2,9 @@ import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { 
-  Building2, 
-  Search, 
+import {
+  Building2,
+  Search,
   Filter,
   Plus,
   MoreVertical,
@@ -26,6 +26,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { CreateCompanyDialog } from "@/components/admin/companies/create-company-dialog";
 
 interface SearchParams {
   q?: string;
@@ -122,10 +123,7 @@ export default async function AdminCompaniesPage({
             Gerencie todas as empresas cadastradas na plataforma
           </p>
         </div>
-        <Button className="bg-gradient-to-r from-neon-cyan to-neon-magenta text-white dark:text-black font-semibold hover:opacity-90">
-          <Plus className="h-4 w-4 mr-2" />
-          Nova Empresa
-        </Button>
+        <CreateCompanyDialog />
       </div>
 
       {/* Filters */}
@@ -180,101 +178,101 @@ export default async function AdminCompaniesPage({
         <div className="overflow-x-auto -mx-4 sm:mx-0">
           <div className="inline-block min-w-full align-middle">
             <table className="w-full min-w-[900px]">
-            <thead>
-              <tr className="border-b border-white/10">
-                <th className="text-left p-4 text-sm font-medium text-gray-400">Empresa</th>
-                <th className="text-left p-4 text-sm font-medium text-gray-400">Plano</th>
-                <th className="text-left p-4 text-sm font-medium text-gray-400">Usuários</th>
-                <th className="text-left p-4 text-sm font-medium text-gray-400">Execuções</th>
-                <th className="text-left p-4 text-sm font-medium text-gray-400">Créditos</th>
-                <th className="text-left p-4 text-sm font-medium text-gray-400">Criado em</th>
-                <th className="text-right p-4 text-sm font-medium text-gray-400">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {companies.map((company) => {
-                const colors = planColors[company.plan as keyof typeof planColors] || planColors.PROFESSIONAL;
-                return (
-                  <tr
-                    key={company.id}
-                    className="border-b border-white/5 hover:bg-white/5 transition-colors"
-                  >
-                    <td className="p-4">
-                      <Link href={`/admin/companies/${company.id}`} className="flex items-center gap-3 hover:text-neon-cyan transition-colors">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-neon-cyan/30 to-neon-magenta/30 flex items-center justify-center text-white font-bold">
-                          {company.name[0]}
+              <thead>
+                <tr className="border-b border-white/10">
+                  <th className="text-left p-4 text-sm font-medium text-gray-400">Empresa</th>
+                  <th className="text-left p-4 text-sm font-medium text-gray-400">Plano</th>
+                  <th className="text-left p-4 text-sm font-medium text-gray-400">Usuários</th>
+                  <th className="text-left p-4 text-sm font-medium text-gray-400">Execuções</th>
+                  <th className="text-left p-4 text-sm font-medium text-gray-400">Créditos</th>
+                  <th className="text-left p-4 text-sm font-medium text-gray-400">Criado em</th>
+                  <th className="text-right p-4 text-sm font-medium text-gray-400">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {companies.map((company) => {
+                  const colors = planColors[company.plan as keyof typeof planColors] || planColors.PROFESSIONAL;
+                  return (
+                    <tr
+                      key={company.id}
+                      className="border-b border-white/5 hover:bg-white/5 transition-colors"
+                    >
+                      <td className="p-4">
+                        <Link href={`/admin/companies/${company.id}`} className="flex items-center gap-3 hover:text-neon-cyan transition-colors">
+                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-neon-cyan/30 to-neon-magenta/30 flex items-center justify-center text-white font-bold">
+                            {company.name[0]}
+                          </div>
+                          <div>
+                            <p className="font-medium text-white">{company.name}</p>
+                            <p className="text-sm text-gray-500">{company.slug}</p>
+                          </div>
+                        </Link>
+                      </td>
+                      <td className="p-4">
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${colors.bg} ${colors.text} border ${colors.border}`}>
+                          {company.plan}
+                        </span>
+                      </td>
+                      <td className="p-4">
+                        <div className="flex items-center gap-2 text-gray-300">
+                          <Users className="h-4 w-4 text-gray-500" />
+                          <span>{company._count.users}</span>
+                          <span className="text-gray-500">/ {company.maxUsers}</span>
                         </div>
-                        <div>
-                          <p className="font-medium text-white">{company.name}</p>
-                          <p className="text-sm text-gray-500">{company.slug}</p>
+                      </td>
+                      <td className="p-4">
+                        <div className="flex items-center gap-2 text-gray-300">
+                          <Activity className="h-4 w-4 text-gray-500" />
+                          <span>{company._count.executions}</span>
                         </div>
-                      </Link>
-                    </td>
-                    <td className="p-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${colors.bg} ${colors.text} border ${colors.border}`}>
-                        {company.plan}
-                      </span>
-                    </td>
-                    <td className="p-4">
-                      <div className="flex items-center gap-2 text-gray-300">
-                        <Users className="h-4 w-4 text-gray-500" />
-                        <span>{company._count.users}</span>
-                        <span className="text-gray-500">/ {company.maxUsers}</span>
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <div className="flex items-center gap-2 text-gray-300">
-                        <Activity className="h-4 w-4 text-gray-500" />
-                        <span>{company._count.executions}</span>
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <span className={`font-medium ${company.credits > 20 ? "text-green-400" : company.credits > 0 ? "text-amber-400" : "text-red-400"}`}>
-                        {company.credits}
-                      </span>
-                    </td>
-                    <td className="p-4">
-                      <div className="flex items-center gap-2 text-gray-400">
-                        <Calendar className="h-4 w-4" />
-                        <span>{format(company.createdAt, "dd MMM yyyy", { locale: ptBR })}</span>
-                      </div>
-                    </td>
-                    <td className="p-4 text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white hover:bg-white/10">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="bg-[#1a1a24] border-white/10 text-white">
-                          <DropdownMenuItem asChild className="cursor-pointer hover:bg-white/5">
-                            <Link href={`/admin/companies/${company.id}`}>Ver detalhes</Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="cursor-pointer hover:bg-white/5">
-                            Editar plano
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="cursor-pointer hover:bg-white/5">
-                            Adicionar créditos
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="cursor-pointer text-red-400 hover:bg-red-500/10">
-                            Desativar
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      </td>
+                      <td className="p-4">
+                        <span className={`font-medium ${company.credits > 20 ? "text-green-400" : company.credits > 0 ? "text-amber-400" : "text-red-400"}`}>
+                          {company.credits}
+                        </span>
+                      </td>
+                      <td className="p-4">
+                        <div className="flex items-center gap-2 text-gray-400">
+                          <Calendar className="h-4 w-4" />
+                          <span>{format(company.createdAt, "dd MMM yyyy", { locale: ptBR })}</span>
+                        </div>
+                      </td>
+                      <td className="p-4 text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white hover:bg-white/10">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="bg-[#1a1a24] border-white/10 text-white">
+                            <DropdownMenuItem asChild className="cursor-pointer hover:bg-white/5">
+                              <Link href={`/admin/companies/${company.id}`}>Ver detalhes</Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="cursor-pointer hover:bg-white/5">
+                              Editar plano
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="cursor-pointer hover:bg-white/5">
+                              Adicionar créditos
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="cursor-pointer text-red-400 hover:bg-red-500/10">
+                              Desativar
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </td>
+                    </tr>
+                  );
+                })}
+                {companies.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="p-8 text-center text-gray-500">
+                      <Building2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>Nenhuma empresa encontrada</p>
                     </td>
                   </tr>
-                );
-              })}
-              {companies.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="p-8 text-center text-gray-500">
-                    <Building2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>Nenhuma empresa encontrada</p>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
 

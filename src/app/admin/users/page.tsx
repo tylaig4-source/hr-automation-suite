@@ -29,6 +29,7 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { UsersClient } from "./users-client";
+import { CreateUserDialog } from "@/components/admin/users/create-user-dialog";
 
 interface SearchParams {
   q?: string;
@@ -157,10 +158,7 @@ export default async function AdminUsersPage({
             Gerencie todos os usuários cadastrados na plataforma
           </p>
         </div>
-        <Button className="bg-gradient-to-r from-neon-cyan to-neon-magenta text-white dark:text-black font-semibold hover:opacity-90">
-          <UserPlus className="h-4 w-4 mr-2" />
-          Novo Usuário
-        </Button>
+        <CreateUserDialog companies={companies} />
       </div>
 
       {/* Stats */}
