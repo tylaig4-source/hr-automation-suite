@@ -19,8 +19,9 @@ import { categories, getAgentsByCategory } from "../../../prompts";
 import { Button } from "@/components/ui/button";
 import { OnboardingWrapper } from "@/components/dashboard/onboarding-wrapper";
 import { TrialUpgradeAlert } from "@/components/dashboard/trial-upgrade-alert";
-import { PlanSelectionWrapper } from "@/components/dashboard/plan-selection-wrapper";
 import { PaymentAlert } from "@/components/dashboard/payment-alert";
+import { UpgradeSuggestionAlert } from "@/components/dashboard/upgrade-suggestion-alert";
+import { TokenUsageWidget } from "@/components/dashboard/token-usage-widget";
 import { getTrialSettings } from "@/lib/trial-settings";
 
 const quickAccess = [
@@ -56,15 +57,33 @@ export default async function DashboardPage() {
     subscriptionNextDueDate: null as Date | null,
   };
 
-  if (companyId) {
+  // Se não tem companyId na sessão, buscar do banco pelo userId
+  let finalCompanyId = companyId;
+  if (!finalCompanyId && userId) {
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { companyId: true },
+      });
+      if (user?.companyId) {
+        finalCompanyId = user.companyId;
+      }
+    } catch (error) {
+      console.error("Erro ao buscar companyId do usuário:", error);
+    }
+  }
+
+  if (finalCompanyId) {
     try {
       const company = await prisma.company.findUnique({
-        where: { id: companyId },
+        where: { id: finalCompanyId },
         select: {
           plan: true,
           isTrialing: true,
           trialEndDate: true,
           credits: true,
+          maxUsers: true,
+          maxExecutions: true,
           subscription: {
             select: { 
               status: true,
@@ -84,7 +103,15 @@ export default async function DashboardPage() {
         // Verificar se tem plano ativo (trial ativo OU assinatura ativa)
         const hasActiveTrial = company.isTrialing && company.trialEndDate && new Date(company.trialEndDate) > new Date();
         const hasActiveSubscription = company.subscription?.status === "ACTIVE";
-        companyInfo.hasActivePlan = hasActiveTrial || hasActiveSubscription;
+        
+        // Também verificar se tem limites configurados (indica que tem plano)
+        const hasConfiguredLimits = Boolean(
+          (company.maxUsers && company.maxUsers > 0) || 
+          (company.maxExecutions && company.maxExecutions > 0) ||
+          (company.credits && company.credits > 0)
+        );
+        
+        companyInfo.hasActivePlan = hasActiveTrial || hasActiveSubscription || hasConfiguredLimits;
         
         if (company.isTrialing && company.trialEndDate) {
           const now = new Date();
@@ -187,19 +214,8 @@ export default async function DashboardPage() {
     }
   }
 
-  // Buscar planos para o modal de seleção
-  const plans = await prisma.plan.findMany({
-    where: { isActive: true },
-    orderBy: { orderIndex: "asc" },
-  });
-
   return (
     <div className="space-y-8">
-      {/* Modal de Seleção de Plano - Mostrar se não tem plano ativo */}
-      {!companyInfo.hasActivePlan && (
-        <PlanSelectionWrapper plans={plans} />
-      )}
-
       {/* Onboarding normal - apenas se tiver plano ativo */}
       {companyInfo.hasActivePlan && (
         <OnboardingWrapper
@@ -216,6 +232,11 @@ export default async function DashboardPage() {
           subscriptionStatus={companyInfo.subscriptionStatus}
           nextDueDate={companyInfo.subscriptionNextDueDate}
         />
+      )}
+
+      {/* Upgrade Suggestion Alert - sugerir upgrade para anual após 1 mês no mensal */}
+      {companyInfo.hasActivePlan && !companyInfo.isTrialing && companyInfo.subscriptionStatus === "ACTIVE" && (
+        <UpgradeSuggestionAlert />
       )}
 
       {/* Trial Upgrade Alert - apenas se tiver plano ativo */}
@@ -244,7 +265,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <div className="glass rounded-2xl p-6 border border-neon-cyan/20 hover:border-neon-cyan/40 transition-colors">
           <div className="flex items-center justify-between mb-4">
             <p className="text-sm font-medium text-gray-400">Execuções este mês</p>
@@ -289,6 +310,9 @@ export default async function DashboardPage() {
         </div>
       </div>
 
+      {/* Token Usage Widget */}
+      <TokenUsageWidget />
+
       {/* Quick Access */}
       <div>
         <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
@@ -326,7 +350,7 @@ export default async function DashboardPage() {
             </button>
           </Link>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {categories.slice(0, 8).map((category) => {
             // @ts-ignore
             const Icon = LucideIcons[category.icon || "Circle"] || LucideIcons.Circle;

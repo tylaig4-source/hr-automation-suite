@@ -9,49 +9,50 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
     try {
         const session = await getServerSession(authOptions);
-        if (!session?.user) {
+        if (!session?.user?.id) {
             return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
         }
+
+        const userId = session.user.id;
 
         // Se usuário não tiver empresa na sessão, verifica no banco
         let companyId = session.user.companyId;
 
         if (!companyId) {
             const user = await prisma.user.findUnique({
-                where: { id: session.user.id },
+                where: { id: userId },
                 select: { companyId: true }
             });
 
             if (user?.companyId) {
                 companyId = user.companyId;
             } else {
-                // Se realmente não tiver, cria uma SEM plano ativo
-                // Usuário deve escolher plano no onboarding
-                const defaultSlug = session.user.email.split("@")[0] + "-" + Date.now().toString(36);
-
-                const newCompany = await prisma.company.create({
-                    data: {
-                        name: "Minha Empresa",
-                        slug: defaultSlug,
-                        plan: "TRIAL", // Apenas referência, mas sem acesso
-                        credits: 0, // Sem créditos até escolher plano
-                        maxUsers: 0, // Sem acesso até escolher plano
-                        maxExecutions: 0, // Sem acesso até escolher plano
-                        isTrialing: false, // Não está em trial até escolher
-                        trialStartDate: null,
-                        trialEndDate: null,
-                        users: {
-                            connect: { id: session.user.id }
-                        }
-                    }
+                // Se realmente não tiver, retorna dados vazios em vez de criar empresa
+                // Usuário deve passar pelo onboarding primeiro
+                return NextResponse.json({
+                    plan: "TRIAL",
+                    credits: 0,
+                    maxExecutions: 0,
+                    usedExecutions: 0,
+                    executionsPercentage: 0,
+                    maxUsers: 0,
+                    usedUsers: 0,
+                    usersPercentage: 0,
+                    percentage: 0,
+                    isUnlimited: false,
+                    isTrialing: false,
+                    trialEndDate: null,
+                    trialDaysLeft: 0,
+                    trialExpired: false,
+                    hasActivePlan: false,
+                    subscription: null,
                 });
-                companyId = newCompany.id;
             }
         }
 
         // Verificar se usuário é ADMIN (acesso ilimitado)
         const user = await prisma.user.findUnique({
-            where: { id: session.user.id },
+            where: { id: userId },
             select: { role: true }
         });
 
@@ -96,8 +97,17 @@ export async function GET(request: NextRequest) {
 
         // Admin ou ENTERPRISE tem acesso ilimitado
         const isUnlimited = isAdmin || company.plan === "ENTERPRISE";
-        const executionsPercentage = isUnlimited ? 0 : Math.min(100, (usedExecutions / company.maxExecutions) * 100);
-        const usersPercentage = isUnlimited ? 0 : Math.min(100, (usedUsers / company.maxUsers) * 100);
+        
+        // Proteção contra divisão por zero e valores null/undefined
+        const maxExecutions = company.maxExecutions || 1;
+        const maxUsers = company.maxUsers || 1;
+        
+        const executionsPercentage = isUnlimited || maxExecutions === 0 
+            ? 0 
+            : Math.min(100, Math.max(0, (usedExecutions / maxExecutions) * 100));
+        const usersPercentage = isUnlimited || maxUsers === 0 
+            ? 0 
+            : Math.min(100, Math.max(0, (usedUsers / maxUsers) * 100));
 
         // Calcular dias restantes do trial
         let trialDaysLeft = 0;
@@ -115,29 +125,39 @@ export async function GET(request: NextRequest) {
         const hasActivePlan = hasActiveTrial || hasActiveSubscription;
 
         return NextResponse.json({
-            plan: company.plan,
-            credits: isAdmin ? 999999 : company.credits, // Admin tem créditos ilimitados
-            maxExecutions: isAdmin ? 999999 : company.maxExecutions, // Admin tem execuções ilimitadas
-            usedExecutions,
-            executionsPercentage,
-            maxUsers: isAdmin ? 999999 : company.maxUsers, // Admin tem usuários ilimitados
-            usedUsers,
-            usersPercentage,
-            percentage: executionsPercentage, // Mantido para compatibilidade
-            isUnlimited,
+            plan: company.plan || "TRIAL",
+            credits: isAdmin ? 999999 : (company.credits || 0), // Admin tem créditos ilimitados
+            maxExecutions: isAdmin ? 999999 : maxExecutions, // Admin tem execuções ilimitadas
+            usedExecutions: usedExecutions || 0,
+            executionsPercentage: isNaN(executionsPercentage) ? 0 : executionsPercentage,
+            maxUsers: isAdmin ? 999999 : maxUsers, // Admin tem usuários ilimitados
+            usedUsers: usedUsers || 0,
+            usersPercentage: isNaN(usersPercentage) ? 0 : usersPercentage,
+            percentage: isNaN(executionsPercentage) ? 0 : executionsPercentage, // Mantido para compatibilidade
+            isUnlimited: isUnlimited || false,
             // Trial info
-            isTrialing: company.isTrialing,
+            isTrialing: company.isTrialing || false,
             trialEndDate: company.trialEndDate,
-            trialDaysLeft,
-            trialExpired,
+            trialDaysLeft: trialDaysLeft || 0,
+            trialExpired: trialExpired || false,
             // Plan status
-            hasActivePlan,
-            subscription: company.subscription,
+            hasActivePlan: hasActivePlan || false,
+            subscription: company.subscription || null,
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error("Erro ao buscar uso:", error);
+        console.error("Stack trace:", error?.stack);
+        console.error("Error details:", {
+            message: error?.message,
+            name: error?.name,
+            code: error?.code,
+        });
         return NextResponse.json(
-            { error: "Erro interno do servidor" },
+            { 
+                error: "Erro interno do servidor",
+                message: process.env.NODE_ENV === "development" ? error?.message : undefined,
+                code: error?.code,
+            },
             { status: 500 }
         );
     }

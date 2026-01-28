@@ -2,10 +2,22 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { createCustomer, findCustomerByEmail } from "@/lib/stripe";
+import { createCustomer, findCustomerByEmail, isStripeConfigured } from "@/lib/stripe";
 
 export async function POST(request: NextRequest) {
   try {
+    // Verificar se Stripe está configurado
+    const stripeConfigured = await isStripeConfigured();
+    if (!stripeConfigured) {
+      return NextResponse.json(
+        { 
+          error: "Stripe não está configurado. Configure as chaves do Stripe em /admin/settings",
+          code: "STRIPE_NOT_CONFIGURED"
+        },
+        { status: 503 }
+      );
+    }
+
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.companyId) {

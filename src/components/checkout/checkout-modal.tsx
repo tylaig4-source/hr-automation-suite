@@ -28,18 +28,24 @@ interface CheckoutModalProps {
   onClose: () => void;
   selectedPlan: Plan | null;
   onSuccess?: () => void;
+  defaultBillingCycle?: "MONTHLY" | "YEARLY"; // Ciclo de cobrança padrão
 }
 
-type Step = "customer" | "payment" | "processing" | "success";
+type Step = "customer" | "payment" | "processing" | "success" | "pix";
 type BillingCycle = "MONTHLY" | "YEARLY";
 type PaymentMethod = "PIX" | "BOLETO" | "CREDIT_CARD";
 
-export function CheckoutModal({ isOpen, onClose, selectedPlan, onSuccess }: CheckoutModalProps) {
+export function CheckoutModal({ isOpen, onClose, selectedPlan, onSuccess, defaultBillingCycle = "YEARLY" }: CheckoutModalProps) {
   const { toast } = useToast();
   const [step, setStep] = useState<Step>("customer");
   const [loading, setLoading] = useState(false);
-  const [billingCycle, setBillingCycle] = useState<BillingCycle>("YEARLY");
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>(defaultBillingCycle);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("CREDIT_CARD");
+  const [pixData, setPixData] = useState<{
+    qrCode?: string;
+    copiaECola?: string;
+    expiresAt?: number;
+  } | null>(null);
   
   // Customer info
   const [customerData, setCustomerData] = useState({
@@ -119,80 +125,96 @@ export function CheckoutModal({ isOpen, onClose, selectedPlan, onSuccess }: Chec
   };
 
   const handlePaymentSubmit = async () => {
+    // Para cartão de crédito, usar Stripe Checkout
     if (paymentMethod === "CREDIT_CARD") {
-      if (!cardData.holderName || !cardData.number || !cardData.expiryMonth || !cardData.expiryYear || !cardData.ccv) {
+      setStep("processing");
+      setLoading(true);
+
+      try {
+        // Criar Checkout Session
+        const response = await fetch("/api/stripe/checkout-session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            planId: plan.id,
+            billingCycle,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Erro ao criar sessão de checkout");
+        }
+
+        // Redirecionar para o Stripe Checkout
+        if (data.url) {
+          window.location.href = data.url;
+        } else {
+          throw new Error("URL de checkout não retornada");
+        }
+      } catch (error) {
         toast({
-          title: "Campos obrigatórios",
-          description: "Por favor, preencha todos os dados do cartão.",
+          title: "Erro",
+          description: error instanceof Error ? error.message : "Erro ao processar pagamento",
           variant: "destructive",
         });
-        return;
+        setStep("payment");
+        setLoading(false);
       }
+      return;
     }
 
-    setStep("processing");
-    setLoading(true);
+    // Para PIX, manter o fluxo antigo (já que PIX não funciona bem com Checkout Session)
+    if (paymentMethod === "PIX") {
+      setStep("processing");
+      setLoading(true);
 
-    try {
-      const body: Record<string, unknown> = {
-        planId: plan.id,
-        billingType: paymentMethod,
-        billingCycle,
-        value: billingCycle === "YEARLY" ? totalPrice : price,
-      };
+      try {
+        const response = await fetch("/api/stripe/subscriptions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            planId: plan.id,
+            billingCycle,
+            paymentMethodType: "PIX",
+          }),
+        });
 
-      if (paymentMethod === "CREDIT_CARD") {
-        body.creditCard = cardData;
-        body.creditCardHolderInfo = {
-          name: cardData.holderName,
-          email: customerData.email,
-          cpfCnpj: customerData.cpfCnpj.replace(/\D/g, ""),
-          postalCode: customerData.postalCode?.replace(/\D/g, ""),
-          addressNumber: customerData.addressNumber,
-          phone: customerData.phone?.replace(/\D/g, ""),
-        };
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Erro ao criar assinatura");
+        }
+
+        // Se for PIX, mostrar QR Code
+        if (data.pix) {
+          setPixData(data.pix);
+          setStep("pix");
+          toast({
+            title: "QR Code PIX gerado!",
+            description: "Escaneie o QR Code ou copie o código para pagar.",
+          });
+        } else {
+          throw new Error("Dados PIX não retornados");
+        }
+      } catch (error) {
+        toast({
+          title: "Erro",
+          description: error instanceof Error ? error.message : "Erro ao processar pagamento",
+          variant: "destructive",
+        });
+        setStep("payment");
+      } finally {
+        setLoading(false);
       }
-
-      const response = await fetch("/api/stripe/subscriptions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          planId: plan.id,
-          billingCycle,
-          paymentMethodId: paymentMethod === "CREDIT_CARD" ? "card" : undefined,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Erro ao criar assinatura");
-      }
-
-      setStep("success");
-      toast({
-        title: "Assinatura criada!",
-        description: "Sua assinatura foi processada com sucesso.",
-      });
-
-      if (onSuccess) {
-        setTimeout(onSuccess, 2000);
-      }
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: error instanceof Error ? error.message : "Erro ao processar pagamento",
-        variant: "destructive",
-      });
-      setStep("payment");
-    } finally {
-      setLoading(false);
     }
   };
 
   const handleClose = () => {
     setStep("customer");
     setLoading(false);
+    setPixData(null);
     setCustomerData({
       name: "",
       email: "",
@@ -227,6 +249,7 @@ export function CheckoutModal({ isOpen, onClose, selectedPlan, onSuccess }: Chec
               {step === "customer" && "Informe seus dados para continuar"}
               {step === "payment" && "Escolha a forma de pagamento"}
               {step === "processing" && "Processando seu pagamento..."}
+              {step === "pix" && "Escaneie o QR Code ou copie o código para pagar"}
               {step === "success" && "Sua assinatura está ativa"}
             </DialogDescription>
           </DialogHeader>
@@ -415,63 +438,18 @@ export function CheckoutModal({ isOpen, onClose, selectedPlan, onSuccess }: Chec
           {/* Payment Step */}
           {step === "payment" && (
             <div className="space-y-6">
-              {/* Credit Card Form */}
+              {/* Credit Card Info */}
               {paymentMethod === "CREDIT_CARD" && (
                 <div className="space-y-4 p-4 rounded-xl bg-muted/50 border">
                   <h4 className="font-semibold flex items-center gap-2">
                     <CreditCard className="w-5 h-5 text-primary" />
-                    Dados do Cartão
+                    Pagamento com Cartão
                   </h4>
-                  <div>
-                    <Label>Nome no Cartão</Label>
-                    <Input
-                      value={cardData.holderName}
-                      onChange={(e) => setCardData({ ...cardData, holderName: e.target.value })}
-                      className="mt-1"
-                      placeholder="NOME COMO NO CARTÃO"
-                    />
-                  </div>
-                  <div>
-                    <Label>Número do Cartão</Label>
-                    <Input
-                      value={cardData.number}
-                      onChange={(e) => setCardData({ ...cardData, number: e.target.value })}
-                      className="mt-1"
-                      placeholder="0000 0000 0000 0000"
-                    />
-                  </div>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div>
-                      <Label>Mês</Label>
-                      <Input
-                        value={cardData.expiryMonth}
-                        onChange={(e) => setCardData({ ...cardData, expiryMonth: e.target.value })}
-                        className="mt-1"
-                        placeholder="MM"
-                        maxLength={2}
-                      />
-                    </div>
-                    <div>
-                      <Label>Ano</Label>
-                      <Input
-                        value={cardData.expiryYear}
-                        onChange={(e) => setCardData({ ...cardData, expiryYear: e.target.value })}
-                        className="mt-1"
-                        placeholder="AA"
-                        maxLength={2}
-                      />
-                    </div>
-                    <div>
-                      <Label>CVV</Label>
-                      <Input
-                        value={cardData.ccv}
-                        onChange={(e) => setCardData({ ...cardData, ccv: e.target.value })}
-                        className="mt-1"
-                        placeholder="123"
-                        maxLength={4}
-                        type="password"
-                      />
-                    </div>
+                  <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20">
+                    <p className="text-sm text-blue-800 dark:text-blue-200">
+                      Você será redirecionado para a página segura do Stripe para inserir os dados do seu cartão.
+                      O Stripe processa o pagamento de forma segura e não armazena os dados em nossos servidores.
+                    </p>
                   </div>
                 </div>
               )}
@@ -522,6 +500,90 @@ export function CheckoutModal({ isOpen, onClose, selectedPlan, onSuccess }: Chec
               <Loader2 className="w-16 h-16 mx-auto text-primary animate-spin mb-4" />
               <h3 className="text-xl font-semibold mb-2">Processando pagamento...</h3>
               <p className="text-muted-foreground">Por favor, aguarde enquanto processamos sua assinatura.</p>
+            </div>
+          )}
+
+          {/* PIX Step */}
+          {step === "pix" && pixData && (
+            <div className="py-8">
+              <div className="text-center mb-6">
+                <QrCode className="w-16 h-16 mx-auto text-blue-600 dark:text-blue-400 mb-4" />
+                <h3 className="text-2xl font-semibold mb-2">Pague com PIX</h3>
+                <p className="text-muted-foreground mb-4">
+                  Escaneie o QR Code ou copie o código para pagar
+                </p>
+              </div>
+
+              {/* QR Code */}
+              {pixData.qrCode && (
+                <div className="mb-6 p-6 bg-white rounded-xl border-2 border-dashed border-gray-300 flex items-center justify-center">
+                  {pixData.qrCode.startsWith("data:image") || pixData.qrCode.startsWith("http") ? (
+                    <img 
+                      src={pixData.qrCode} 
+                      alt="QR Code PIX" 
+                      className="max-w-full h-auto"
+                    />
+                  ) : (
+                    <div className="text-center">
+                      <QrCode className="w-32 h-32 mx-auto text-gray-400 mb-2" />
+                      <p className="text-sm text-gray-500">QR Code disponível no código abaixo</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Copia e Cola */}
+              {pixData.copiaECola && (
+                <div className="mb-6">
+                  <Label className="text-sm font-medium mb-2 block">Código PIX (Copia e Cola)</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={pixData.copiaECola}
+                      readOnly
+                      className="font-mono text-sm"
+                    />
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => {
+                        navigator.clipboard.writeText(pixData.copiaECola!);
+                        toast({
+                          title: "Copiado!",
+                          description: "Código PIX copiado para a área de transferência.",
+                        });
+                      }}
+                    >
+                      <FileText className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20">
+                <p className="text-sm text-amber-800 dark:text-amber-200">
+                  ⏰ O código PIX expira em {pixData.expiresAt ? new Date(pixData.expiresAt).toLocaleString("pt-BR") : "alguns minutos"}. 
+                  Após o pagamento, sua assinatura será ativada automaticamente.
+                </p>
+              </div>
+
+              <div className="mt-6 flex gap-3">
+                <Button
+                  variant="outline"
+                  onClick={handleClose}
+                  className="flex-1"
+                >
+                  Fechar
+                </Button>
+                <Button
+                  onClick={() => {
+                    // Verificar status do pagamento
+                    window.location.reload();
+                  }}
+                  className="flex-1"
+                >
+                  Verificar Pagamento
+                </Button>
+              </div>
             </div>
           )}
 

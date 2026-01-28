@@ -3,27 +3,23 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = 'force-dynamic';
+
 // GET /api/notifications
 // Retorna as notificações do usuário logado
 export async function GET(request: NextRequest) {
-    const session = await getServerSession(authOptions);
-
-    if (!session?.user) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     try {
-        if (!prisma.notification) {
-            console.error("CRITICAL: prisma.notification is undefined. Schema might not be synced.");
-            return NextResponse.json(
-                { error: "Erro interno: Tabela de notificações não encontrada" },
-                { status: 500 }
-            );
+        const session = await getServerSession(authOptions);
+
+        if (!session?.user?.id) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
+
+        const userId = session.user.id;
 
         const notifications = await prisma.notification.findMany({
             where: {
-                userId: session.user.id,
+                userId: userId,
             },
             orderBy: {
                 createdAt: "desc",
@@ -33,16 +29,29 @@ export async function GET(request: NextRequest) {
 
         const unreadCount = await prisma.notification.count({
             where: {
-                userId: session.user.id,
+                userId: userId,
                 read: false,
             },
         });
 
-        return NextResponse.json({ notifications, unreadCount });
-    } catch (error) {
+        return NextResponse.json({ 
+            notifications: notifications || [], 
+            unreadCount: unreadCount || 0 
+        });
+    } catch (error: any) {
         console.error("Erro ao buscar notificações:", error);
+        console.error("Stack trace:", error?.stack);
+        console.error("Error details:", {
+            message: error?.message,
+            name: error?.name,
+            code: error?.code,
+        });
         return NextResponse.json(
-            { error: "Erro interno do servidor" },
+            { 
+                error: "Erro interno do servidor",
+                message: process.env.NODE_ENV === "development" ? error?.message : undefined,
+                code: error?.code,
+            },
             { status: 500 }
         );
     }
@@ -51,20 +60,21 @@ export async function GET(request: NextRequest) {
 // PATCH /api/notifications
 // Marca notificações como lidas
 export async function PATCH(request: NextRequest) {
-    const session = await getServerSession(authOptions);
-
-    if (!session?.user) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     try {
+        const session = await getServerSession(authOptions);
+
+        if (!session?.user?.id) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        const userId = session.user.id;
         const body = await request.json();
         const { notificationId, markAllRead } = body;
 
         if (markAllRead) {
             await prisma.notification.updateMany({
                 where: {
-                    userId: session.user.id,
+                    userId: userId,
                     read: false,
                 },
                 data: {
@@ -75,7 +85,7 @@ export async function PATCH(request: NextRequest) {
             await prisma.notification.update({
                 where: {
                     id: notificationId,
-                    userId: session.user.id,
+                    userId: userId,
                 },
                 data: {
                     read: true,
@@ -84,10 +94,14 @@ export async function PATCH(request: NextRequest) {
         }
 
         return NextResponse.json({ success: true });
-    } catch (error) {
+    } catch (error: any) {
         console.error("Erro ao atualizar notificações:", error);
+        console.error("Stack trace:", error?.stack);
         return NextResponse.json(
-            { error: "Erro interno do servidor" },
+            { 
+                error: "Erro interno do servidor",
+                details: process.env.NODE_ENV === "development" ? error.message : undefined
+            },
             { status: 500 }
         );
     }
