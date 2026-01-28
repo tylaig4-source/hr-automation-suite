@@ -30,25 +30,25 @@ export function AdminHeader({ user }: AdminHeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const initials = user.name
     ? user.name
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2)
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2)
     : user.email[0].toUpperCase();
 
   return (
-    <header className="sticky top-0 z-30 h-16 border-b border-white/10 bg-[#0a0a0f]/80 backdrop-blur-xl">
+    <header className="sticky top-0 z-30 h-16 border-b bg-background/80 backdrop-blur-xl">
       <div className="flex h-full items-center justify-between px-4 sm:px-6 gap-2 sm:gap-4">
         {/* Mobile menu button */}
         <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
           <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" className="lg:hidden text-white hover:bg-white/10">
+            <Button variant="ghost" size="icon" className="lg:hidden">
               <Menu className="h-5 w-5" />
               <span className="sr-only">Menu</span>
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="p-0 w-64 bg-[#0f0f14] border-white/10">
+          <SheetContent side="left" className="p-0 w-64">
             <AdminMobileSidebar onClose={() => setMobileMenuOpen(false)} />
           </SheetContent>
         </Sheet>
@@ -56,10 +56,10 @@ export function AdminHeader({ user }: AdminHeaderProps) {
         {/* Search */}
         <div className="flex items-center gap-2 sm:gap-4 flex-1 max-w-xl">
           <div className="relative flex-1 hidden sm:block">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Buscar empresas, usuários..."
-              className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-gray-500 focus:border-neon-cyan/50 focus:ring-neon-cyan/20"
+              className="pl-10"
             />
           </div>
         </div>
@@ -70,10 +70,10 @@ export function AdminHeader({ user }: AdminHeaderProps) {
           <Button
             variant="ghost"
             size="icon"
-            className="relative text-gray-400 hover:text-white hover:bg-white/5"
+            className="relative"
           >
             <Bell className="h-5 w-5" />
-            <span className="absolute -top-1 -right-1 w-4 h-4 bg-neon-magenta rounded-full text-[10px] font-bold flex items-center justify-center text-white">
+            <span className="absolute -top-1 -right-1 w-4 h-4 bg-destructive rounded-full text-[10px] font-bold flex items-center justify-center text-white">
               3
             </span>
           </Button>
@@ -82,7 +82,6 @@ export function AdminHeader({ user }: AdminHeaderProps) {
           <Button
             variant="ghost"
             size="icon"
-            className="text-gray-400 hover:text-white hover:bg-white/5"
             asChild
           >
             <Link href="/admin/settings">
@@ -95,16 +94,16 @@ export function AdminHeader({ user }: AdminHeaderProps) {
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
-                className="relative h-10 w-10 rounded-full p-0 hover:ring-2 hover:ring-neon-cyan/50"
+                className="relative h-10 w-10 rounded-full p-0"
               >
-                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-neon-cyan to-neon-magenta flex items-center justify-center text-white dark:text-black font-bold">
+                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
                   {initials}
                 </div>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent
               align="end"
-              className="w-56 bg-[#1a1a24] border-white/10 text-white"
+              className="w-56"
             >
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">

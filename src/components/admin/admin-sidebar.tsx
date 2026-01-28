@@ -70,16 +70,16 @@ export function AdminSidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r border-white/10 bg-[#0f0f14] hidden lg:block">
+    <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r bg-card hidden lg:block">
       <div className="flex h-full flex-col">
         {/* Logo */}
-        <div className="flex h-16 items-center border-b border-white/10 px-6 gap-3">
+        <div className="flex h-16 items-center border-b px-6 gap-3">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-neon-cyan via-neon-magenta to-neon-purple flex items-center justify-center">
             <Sparkles className="w-6 h-6 text-white" />
           </div>
           <div>
-            <span className="font-display font-bold text-lg text-white block">HR Suite</span>
-            <span className="text-xs text-neon-cyan">Admin Panel</span>
+            <span className="font-display font-bold text-lg block">HR Suite</span>
+            <span className="text-xs text-muted-foreground">Admin Panel</span>
           </div>
         </div>
 
@@ -87,7 +87,7 @@ export function AdminSidebar() {
         <nav className="flex-1 overflow-y-auto p-4 space-y-1">
           {adminNavItems.map((item) => {
             const Icon = item.icon;
-            const isActive = pathname === item.href || 
+            const isActive = pathname === item.href ||
               (item.href !== "/admin" && pathname.startsWith(item.href));
 
             return (
@@ -97,15 +97,15 @@ export function AdminSidebar() {
                 className={cn(
                   "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200",
                   isActive
-                    ? "bg-gradient-to-r from-neon-cyan/20 to-neon-magenta/20 text-white border border-neon-cyan/30"
-                    : "text-gray-400 hover:bg-white/5 hover:text-white"
+                    ? "bg-primary/10 text-primary border border-primary/20"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 )}
               >
-                <Icon 
+                <Icon
                   className={cn(
                     "h-5 w-5",
-                    isActive ? "text-neon-cyan" : ""
-                  )} 
+                    isActive ? "text-primary" : ""
+                  )}
                 />
                 <span>{item.name}</span>
               </Link>
