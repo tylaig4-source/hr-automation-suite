@@ -27,18 +27,18 @@ async function getStripe(): Promise<Stripe> {
   if (!stripeInstance || stripeSecretKey === null) {
     // Tenta buscar do banco primeiro (prioridade)
     const dbKey = await getStripeSecretKey();
-    
+
     // Fallback para env (para compatibilidade)
     const envKey = process.env.STRIPE_SECRET_KEY;
-    
+
     const secretKey = dbKey || envKey;
     const keySource = dbKey ? "banco de dados" : (envKey ? "variável de ambiente" : "nenhuma");
-    
+
     // Log para debug (não mostra a chave completa por segurança)
     if (secretKey) {
       const keyPreview = secretKey.substring(0, 12) + "..." + secretKey.substring(secretKey.length - 4);
       console.log(`[Stripe] Usando chave do ${keySource}: ${keyPreview} (tamanho: ${secretKey.length})`);
-      
+
       // Validar formato básico da chave
       if (!secretKey.startsWith("sk_test_") && !secretKey.startsWith("sk_live_")) {
         console.error(`[Stripe] ERRO: Chave não começa com sk_test_ ou sk_live_`);
@@ -47,7 +47,7 @@ async function getStripe(): Promise<Stripe> {
           "Chave do Stripe inválida. A chave deve começar com 'sk_test_' ou 'sk_live_'. Verifique a configuração em /admin/settings"
         );
       }
-      
+
       if (secretKey.length < 50) {
         console.error(`[Stripe] ERRO: Chave muito curta (${secretKey.length} caracteres). Chaves do Stripe geralmente têm 100+ caracteres.`);
         throw new Error(
@@ -56,10 +56,10 @@ async function getStripe(): Promise<Stripe> {
       }
     } else {
       // Verificar se estamos em fase de build
-      const isBuildPhase = process.env.NEXT_PHASE === "phase-production-build" || 
-                          process.env.NEXT_PHASE === "phase-development-build" ||
-                          process.env.NODE_ENV === "test";
-      
+      const isBuildPhase = process.env.NEXT_PHASE === "phase-production-build" ||
+        process.env.NEXT_PHASE === "phase-development-build" ||
+        process.env.NODE_ENV === "test";
+
       if (isBuildPhase) {
         // Durante o build, usar chave dummy para não quebrar
         console.warn("[Stripe] Build phase detectada - usando chave dummy temporária");
@@ -70,7 +70,7 @@ async function getStripe(): Promise<Stripe> {
         });
         return stripeInstance;
       }
-      
+
       // Em runtime, não usar chave dummy - lançar erro claro
       console.error("[Stripe] ERRO: Nenhuma chave encontrada no banco de dados ou variáveis de ambiente");
       console.error("[Stripe] Configure as chaves do Stripe em /admin/settings");
@@ -78,16 +78,16 @@ async function getStripe(): Promise<Stripe> {
         "Stripe não está configurado. Configure as chaves do Stripe em /admin/settings ou defina STRIPE_SECRET_KEY no .env"
       );
     }
-    
+
     // Usar a chave encontrada
     stripeSecretKey = secretKey;
-    
+
     stripeInstance = new Stripe(secretKey, {
       apiVersion: "2025-11-17.clover",
       typescript: true,
     });
   }
-  
+
   return stripeInstance;
 }
 
@@ -96,29 +96,29 @@ export async function isStripeConfigured(): Promise<boolean> {
   try {
     const dbKey = await getStripeSecretKey();
     const envKey = process.env.STRIPE_SECRET_KEY;
-    
+
     const secretKey = dbKey || envKey;
-    
+
     // Verificar se a chave existe e é válida
     if (!secretKey) {
       return false;
     }
-    
+
     // Verificar se não é chave dummy
     if (secretKey === "sk_test_dummy") {
       return false;
     }
-    
+
     // Verificar formato básico
     if (!secretKey.startsWith("sk_test_") && !secretKey.startsWith("sk_live_")) {
       return false;
     }
-    
+
     // Verificar tamanho mínimo
     if (secretKey.length < 50) {
       return false;
     }
-    
+
     return true;
   } catch (error) {
     console.error("[Stripe] Erro ao verificar configuração:", error);
@@ -484,7 +484,7 @@ export async function confirmPaymentIntent(
   paymentMethodId?: string
 ): Promise<Stripe.PaymentIntent> {
   const params: Stripe.PaymentIntentConfirmParams = {};
-  
+
   if (paymentMethodId) {
     params.payment_method = paymentMethodId;
   }
@@ -516,7 +516,7 @@ export async function createPixPayment(data: {
   // Para PIX, precisamos confirmar o PaymentIntent para obter o QR Code
   // O QR Code está disponível no next_action após confirmar
   let confirmedPaymentIntent = paymentIntent;
-  
+
   // Se o PaymentIntent não estiver confirmado, tentar confirmar
   if (paymentIntent.status === "requires_payment_method") {
     try {
@@ -525,12 +525,12 @@ export async function createPixPayment(data: {
       console.error("Erro ao confirmar PaymentIntent PIX:", error);
     }
   }
-  
+
   const nextAction = confirmedPaymentIntent.next_action;
   const pixData = nextAction?.type === "display_bank_transfer_details"
     ? (nextAction as any).display_bank_transfer_details
     : null;
-  
+
   return {
     payment_intent: confirmedPaymentIntent,
     pix_qr_code: pixData?.qr_code_data || undefined,
@@ -630,7 +630,7 @@ export async function syncPlanToStripe(data: {
   yearlyPriceId: string | null;
 }> {
   console.log(`[syncPlanToStripe] Iniciando sincronização para plano: ${data.planId}`);
-  
+
   const configured = await isStripeConfigured();
   if (!configured) {
     console.error("[syncPlanToStripe] Stripe não está configurado");
@@ -642,17 +642,17 @@ export async function syncPlanToStripe(data: {
   if (!secretKey) {
     throw new Error("Chave secreta do Stripe não encontrada no banco de dados");
   }
-  
+
   if (secretKey.length < 50) {
     throw new Error(`Chave secreta do Stripe parece estar incompleta (${secretKey.length} caracteres). Verifique se a chave foi salva corretamente em /admin/settings.`);
   }
-  
+
   if (!secretKey.startsWith("sk_test_") && !secretKey.startsWith("sk_live_")) {
     throw new Error(`Chave secreta do Stripe inválida. Deve começar com sk_test_ ou sk_live_. Primeiros caracteres: ${secretKey.substring(0, 20)}`);
   }
 
   console.log(`[syncPlanToStripe] Stripe configurado, criando/buscando produto: ${data.name}`);
-  
+
   // Criar ou buscar produto
   let product: Stripe.Product;
   try {
@@ -672,25 +672,46 @@ export async function syncPlanToStripe(data: {
   let monthlyPriceId: string | null = null;
   let yearlyPriceId: string | null = null;
 
+  // Listar preços existentes do produto para evitar duplicatas
+  const stripe = await getStripeInstance();
+  const existingPrices = await stripe.prices.list({
+    product: product.id,
+    active: true,
+    limit: 100,
+  });
+
   // Criar price mensal se tiver preço
-  if (data.monthlyPrice !== null && data.monthlyPrice > 0) {
+  if (data.monthlyPrice !== null && data.monthlyPrice >= 0) {
     try {
-      console.log(`[syncPlanToStripe] Criando price mensal: R$ ${data.monthlyPrice}`);
-      const stripe = await getStripeInstance();
-      const monthlyPrice = await stripe.prices.create({
-        product: product.id,
-        unit_amount: Math.round(data.monthlyPrice * 100), // Converter para centavos
-        currency: "brl",
-        recurring: {
-          interval: "month",
-        },
-        metadata: {
-          planId: data.planId,
-          billingCycle: "MONTHLY",
-        },
-      });
-      monthlyPriceId = monthlyPrice.id;
-      console.log(`[syncPlanToStripe] Price mensal criado: ${monthlyPriceId}`);
+      const amountInCents = Math.round(data.monthlyPrice * 100);
+
+      // Verificar se já existe preço com mesmo valor e intervalo
+      const existingMonthly = existingPrices.data.find(
+        p => p.unit_amount === amountInCents &&
+          p.recurring?.interval === "month" &&
+          p.currency === "brl"
+      );
+
+      if (existingMonthly) {
+        console.log(`[syncPlanToStripe] Price mensal já existe: ${existingMonthly.id}`);
+        monthlyPriceId = existingMonthly.id;
+      } else {
+        console.log(`[syncPlanToStripe] Criando price mensal: R$ ${data.monthlyPrice}`);
+        const monthlyPrice = await stripe.prices.create({
+          product: product.id,
+          unit_amount: amountInCents, // Converter para centavos
+          currency: "brl",
+          recurring: {
+            interval: "month",
+          },
+          metadata: {
+            planId: data.planId,
+            billingCycle: "MONTHLY",
+          },
+        });
+        monthlyPriceId = monthlyPrice.id;
+        console.log(`[syncPlanToStripe] Price mensal criado: ${monthlyPriceId}`);
+      }
     } catch (error: any) {
       console.error(`[syncPlanToStripe] Erro ao criar price mensal:`, error);
       throw new Error(`Erro ao criar price mensal: ${error.message}`);
@@ -700,24 +721,69 @@ export async function syncPlanToStripe(data: {
   }
 
   // Criar price anual se tiver preço
-  if (data.yearlyPrice !== null && data.yearlyPrice > 0) {
+  if (data.yearlyPrice !== null && data.yearlyPrice >= 0) {
     try {
-      console.log(`[syncPlanToStripe] Criando price anual: R$ ${data.yearlyPrice}/mês`);
-      const stripe = await getStripeInstance();
-      const yearlyPrice = await stripe.prices.create({
-        product: product.id,
-        unit_amount: Math.round(data.yearlyPrice * 100), // Converter para centavos
-        currency: "brl",
-        recurring: {
-          interval: "year",
-        },
-        metadata: {
-          planId: data.planId,
-          billingCycle: "YEARLY",
-        },
-      });
-      yearlyPriceId = yearlyPrice.id;
-      console.log(`[syncPlanToStripe] Price anual criado: ${yearlyPriceId}`);
+      const amountInCents = Math.round(data.yearlyPrice * 100);
+
+      // Verificar se já existe preço com mesmo valor e intervalo
+      const existingYearly = existingPrices.data.find(
+        p => p.unit_amount === amountInCents &&
+          p.recurring?.interval === "year" &&
+          p.currency === "brl"
+      );
+
+      if (existingYearly) {
+        console.log(`[syncPlanToStripe] Price anual já existe: ${existingYearly.id}`);
+        yearlyPriceId = existingYearly.id;
+      } else {
+        console.log(`[syncPlanToStripe] Criando price anual: R$ ${data.yearlyPrice}/mês (Total: ${(amountInCents * 12) / 100})`);
+
+        // O valor anual deve ser o total anual ou o Stripe calcula mensal * 12 automaticamente?
+        // O Stripe cobra o unit_amount a cada interval. Se for anual, unit_amount é o valor cobrado UMA VEZ POR ANO.
+        // O parametro yearlyPrice passado aqui parece ser "preço equivalente mensal".
+        // Se yearlyTotal for passado, usamos ele. Se não, assumimos que yearlyPrice é mensal e multiplicamos por 12.
+
+        let yearlyAmountCents = amountInCents;
+
+        // Se tiver yearlyTotal, usa ele preferencialmente, pois yearlyPrice pode ser apenas visual (/mês)
+        if (data.yearlyTotal !== null && data.yearlyTotal > 0) {
+          yearlyAmountCents = Math.round(data.yearlyTotal * 100);
+        } else {
+          // Se não tiver total, assume que yearlyPrice é o do mês e multiplica por 12 (comportamento padrão de planos anuais com desconto)
+          // Mas cuidado: se data.yearlyPrice JÁ FOR o total, isso estará errado.
+          // Olhando o seed:
+          // PROFESSIONAL: yearlyPrice: 497 (por mês), yearlyTotal: 5964 (total)
+          // Então devemos usar yearlyTotal se disponivel.
+          yearlyAmountCents = Math.round((data.yearlyTotal || (data.yearlyPrice * 12)) * 100);
+        }
+
+        // Verificar novamente com o valor total
+        const existingYearlyTotal = existingPrices.data.find(
+          p => p.unit_amount === yearlyAmountCents &&
+            p.recurring?.interval === "year" &&
+            p.currency === "brl"
+        );
+
+        if (existingYearlyTotal) {
+          console.log(`[syncPlanToStripe] Price anual já existe (verificado pelo total): ${existingYearlyTotal.id}`);
+          yearlyPriceId = existingYearlyTotal.id;
+        } else {
+          const yearlyPrice = await stripe.prices.create({
+            product: product.id,
+            unit_amount: yearlyAmountCents,
+            currency: "brl",
+            recurring: {
+              interval: "year",
+            },
+            metadata: {
+              planId: data.planId,
+              billingCycle: "YEARLY",
+            },
+          });
+          yearlyPriceId = yearlyPrice.id;
+          console.log(`[syncPlanToStripe] Price anual criado: ${yearlyPriceId}`);
+        }
+      }
     } catch (error: any) {
       console.error(`[syncPlanToStripe] Erro ao criar price anual:`, error);
       throw new Error(`Erro ao criar price anual: ${error.message}`);
@@ -756,7 +822,7 @@ export async function testConnection(): Promise<boolean> {
     if (!isConfigured) {
       return false;
     }
-    
+
     const stripe = await getStripeInstance();
     await stripe.customers.list({ limit: 1 });
     return true;

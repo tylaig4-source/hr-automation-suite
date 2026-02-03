@@ -112,3 +112,55 @@ export async function searchUsers(query: string) {
         return [];
     }
 }
+
+export async function updateUser(userId: string, data: any) {
+    try {
+        await prisma.user.update({
+            where: { id: userId },
+            data,
+        });
+        revalidatePath("/admin/users");
+        return { success: true };
+    } catch (error) {
+        console.error("Erro ao atualizar usuário:", error);
+        return { success: false, error: "Falha ao atualizar usuário." };
+    }
+}
+
+export async function deleteUser(userId: string) {
+    try {
+        await prisma.user.delete({
+            where: { id: userId },
+        });
+        revalidatePath("/admin/users");
+        return { success: true };
+    } catch (error) {
+        console.error("Erro ao excluir usuário:", error);
+        return { success: false, error: "Falha ao excluir usuário." };
+    }
+}
+
+export async function searchCompanies(query: string) {
+    if (!query) return [];
+
+    try {
+        const companies = await prisma.company.findMany({
+            where: {
+                OR: [
+                    { name: { contains: query, mode: "insensitive" } },
+                    { slug: { contains: query, mode: "insensitive" } },
+                ],
+            },
+            select: {
+                id: true,
+                name: true,
+                slug: true,
+            },
+            take: 10,
+        });
+        return companies;
+    } catch (error) {
+        console.error("Erro ao buscar empresas:", error);
+        return [];
+    }
+}

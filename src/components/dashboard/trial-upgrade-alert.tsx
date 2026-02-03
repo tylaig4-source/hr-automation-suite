@@ -65,7 +65,7 @@ export function TrialUpgradeAlert({
         <Clock className="h-4 w-4 text-amber-400" />
         <AlertTitle className="text-amber-400">Trial Expirando em Breve</AlertTitle>
         <AlertDescription className="text-gray-300 mt-2">
-          Seu trial expira em {trialDaysLeft} dia{trialDaysLeft !== 1 ? "s" : ""}. 
+          Seu trial expira em {trialDaysLeft} dia{trialDaysLeft !== 1 ? "s" : ""}.
           Assine um plano para continuar usando todos os agentes sem interrupções.
         </AlertDescription>
         <div className="mt-4">
@@ -80,14 +80,14 @@ export function TrialUpgradeAlert({
     );
   }
 
-  // Se está com 2-3 dias restantes
+  // Se está com 2-7 dias restantes
   if (trialDaysLeft <= 3) {
     return (
       <Alert className="border-blue-500/50 bg-blue-500/10">
         <Clock className="h-4 w-4 text-blue-400" />
         <AlertTitle className="text-blue-400">Trial Ativo</AlertTitle>
         <AlertDescription className="text-gray-300 mt-2">
-          Você tem {trialDaysLeft} dias restantes no seu trial. 
+          Você tem {trialDaysLeft} dias restantes no seu trial.
           Considere fazer upgrade para continuar usando após o período de teste.
         </AlertDescription>
         <div className="mt-4">

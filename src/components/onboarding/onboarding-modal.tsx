@@ -138,7 +138,7 @@ const steps = [
   },
 ];
 
-export function OnboardingModal({ isOpen, onComplete, isTrialing = false, trialDaysLeft = 3 }: OnboardingModalProps) {
+export function OnboardingModal({ isOpen, onComplete, isTrialing = false, trialDaysLeft = 7 }: OnboardingModalProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const router = useRouter();
 
@@ -177,104 +177,103 @@ export function OnboardingModal({ isOpen, onComplete, isTrialing = false, trialD
       {isOpen && (
         <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md" />
       )}
-      <Dialog open={isOpen} onOpenChange={() => {}}>
-        <DialogContent 
+      <Dialog open={isOpen} onOpenChange={() => { }}>
+        <DialogContent
           className="max-w-2xl p-0 overflow-hidden bg-[#0a0a0f] border-white/10 z-[101] [&>button]:hidden"
           onInteractOutside={(e) => e.preventDefault()}
           onEscapeKeyDown={(e) => e.preventDefault()}
         >
-        {/* Header */}
-        <div className="relative bg-gradient-to-r from-neon-cyan/10 via-neon-magenta/10 to-neon-purple/10 p-6 border-b border-white/10">
-          <DialogHeader>
-            <DialogTitle className="text-2xl flex items-center gap-2 text-white">
-              <Icon className="w-6 h-6 text-neon-cyan" />
-              {currentStepData.title}
-            </DialogTitle>
-            <DialogDescription className="text-gray-400">
-              {currentStepData.description}
-            </DialogDescription>
-          </DialogHeader>
+          {/* Header */}
+          <div className="relative bg-gradient-to-r from-neon-cyan/10 via-neon-magenta/10 to-neon-purple/10 p-6 border-b border-white/10">
+            <DialogHeader>
+              <DialogTitle className="text-2xl flex items-center gap-2 text-white">
+                <Icon className="w-6 h-6 text-neon-cyan" />
+                {currentStepData.title}
+              </DialogTitle>
+              <DialogDescription className="text-gray-400">
+                {currentStepData.description}
+              </DialogDescription>
+            </DialogHeader>
 
-          {/* Progress Steps */}
-          <div className="flex items-center gap-2 mt-4">
-            {steps.map((step, i) => (
-              <div key={step.id} className="flex items-center gap-2">
-                <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all ${
-                    i <= currentStep
+            {/* Progress Steps */}
+            <div className="flex items-center gap-2 mt-4">
+              {steps.map((step, i) => (
+                <div key={step.id} className="flex items-center gap-2">
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all ${i <= currentStep
                       ? i === currentStep
                         ? "bg-gradient-to-r from-neon-cyan to-neon-magenta text-white"
                         : "bg-neon-cyan/20 text-neon-cyan"
                       : "bg-white/10 text-gray-500"
-                  }`}
-                >
-                  {i < currentStep ? <Check className="w-4 h-4" /> : step.id}
+                      }`}
+                  >
+                    {i < currentStep ? <Check className="w-4 h-4" /> : step.id}
+                  </div>
+                  {i < steps.length - 1 && (
+                    <div className={`w-12 h-0.5 ${i < currentStep ? "bg-gradient-to-r from-neon-cyan to-neon-magenta" : "bg-white/10"}`} />
+                  )}
                 </div>
-                {i < steps.length - 1 && (
-                  <div className={`w-12 h-0.5 ${i < currentStep ? "bg-gradient-to-r from-neon-cyan to-neon-magenta" : "bg-white/10"}`} />
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Content */}
-        <div className="p-6 bg-[#0a0a0f]">
-          {currentStepData.content}
-
-          {/* Trial Info - Only on first step */}
-          {isTrialing && currentStep === 0 && (
-            <div className="mt-6 p-4 rounded-lg bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/30">
-              <div className="flex items-center gap-3">
-                <Clock className="w-5 h-5 text-green-400" />
-                <div>
-                  <p className="font-semibold text-green-400">
-                    Trial Grátis de 3 Dias Ativo!
-                  </p>
-                  <p className="text-sm text-gray-400">
-                    Você tem <strong className="text-white">{trialDaysLeft} dia{trialDaysLeft !== 1 ? 's' : ''}</strong> para explorar todas as funcionalidades.
-                    <br />
-                    <strong className="text-white">50 créditos</strong> e <strong className="text-white">50 requisições</strong> disponíveis.
-                  </p>
-                </div>
-              </div>
+              ))}
             </div>
-          )}
+          </div>
 
-          {/* Actions */}
-          <div className="flex items-center justify-end mt-8">
-            <div className="flex gap-3">
-              {currentStep > 0 && (
+          {/* Content */}
+          <div className="p-6 bg-[#0a0a0f]">
+            {currentStepData.content}
+
+            {/* Trial Info - Only on first step */}
+            {isTrialing && currentStep === 0 && (
+              <div className="mt-6 p-4 rounded-lg bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/30">
+                <div className="flex items-center gap-3">
+                  <Clock className="w-5 h-5 text-green-400" />
+                  <div>
+                    <p className="font-semibold text-green-400">
+                      Trial Grátis de 7 Dias Ativo!
+                    </p>
+                    <p className="text-sm text-gray-400">
+                      Você tem <strong className="text-white">{trialDaysLeft} dia{trialDaysLeft !== 1 ? 's' : ''}</strong> para explorar todas as funcionalidades.
+                      <br />
+                      <strong className="text-white">50 créditos</strong> e <strong className="text-white">50 requisições</strong> disponíveis.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex items-center justify-end mt-8">
+              <div className="flex gap-3">
+                {currentStep > 0 && (
+                  <Button
+                    variant="outline"
+                    onClick={handlePrevious}
+                    className="border-white/10 bg-white/5 hover:bg-white/10 text-white"
+                  >
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Anterior
+                  </Button>
+                )}
                 <Button
-                  variant="outline"
-                  onClick={handlePrevious}
-                  className="border-white/10 bg-white/5 hover:bg-white/10 text-white"
+                  onClick={handleNext}
+                  className="bg-gradient-to-r from-neon-cyan to-neon-magenta hover:opacity-90 text-white"
                 >
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Anterior
+                  {currentStep === steps.length - 1 ? (
+                    <>
+                      Começar
+                      <Check className="w-4 h-4 ml-2" />
+                    </>
+                  ) : (
+                    <>
+                      Próximo
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </>
+                  )}
                 </Button>
-              )}
-              <Button 
-                onClick={handleNext}
-                className="bg-gradient-to-r from-neon-cyan to-neon-magenta hover:opacity-90 text-white"
-              >
-                {currentStep === steps.length - 1 ? (
-                  <>
-                    Começar
-                    <Check className="w-4 h-4 ml-2" />
-                  </>
-                ) : (
-                  <>
-                    Próximo
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </>
-                )}
-              </Button>
+              </div>
             </div>
           </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

@@ -47,7 +47,7 @@ Profissionais de RH gastam em média 60-70% do seu tempo em tarefas operacionais
 - 📈 **Analytics Básico** - Métricas e estatísticas
 - 📄 **Exportação PDF/DOCX** - Exportar resultados em documentos
 - 💳 **Sistema de Pagamentos** - Integração com Stripe (Cartão de Crédito e PIX)
-- 📦 **Planos e Assinaturas** - Sistema de planos com trial gratuito de 3 dias
+- 📦 **Planos e Assinaturas** - Sistema de planos com trial gratuito de 7 dias
 - 🔒 **Segurança de Assinaturas** - Validação em tempo real com Stripe para prevenir fraudes
 - ⚠️ **Sistema de Bloqueio** - Bloqueio automático quando pagamento falha ou assinatura expira
 - 🔔 **Avisos de Pagamento** - Alertas automáticos para pagamentos pendentes/atrasados

@@ -20,17 +20,17 @@ export async function getTrialSettings() {
     where: { key: "allow_trial_without_card" },
   });
 
-  const allowTrialWithoutCard = allowTrialSetting 
-    ? allowTrialSetting.value === "true" 
+  const allowTrialWithoutCard = allowTrialSetting
+    ? allowTrialSetting.value === "true"
     : true; // Default: permitir trial sem cartão
 
-  // Dias de trial padrão: 3 dias
+  // Dias de trial padrão: 7 dias
   // Os dias são calculados dinamicamente quando a empresa é criada
   // Os créditos e execuções vêm do plano TRIAL configurado no admin
-  const trialDays = 3;
+  const trialDays = 7;
 
   return {
-    trialDays, // Padrão: 3 dias
+    trialDays, // Padrão: 7 dias
     trialCredits: trialPlan?.maxCredits || 50, // Do plano TRIAL
     trialExecutions: trialPlan?.maxExecutions || 50, // Do plano TRIAL
     trialUsers: trialPlan?.maxUsers || 1, // Do plano TRIAL
@@ -95,18 +95,18 @@ export async function canExecuteAgents(companyId: string): Promise<{ allowed: bo
   // Se não está em trial, verificar assinatura
   if (company.subscription) {
     const subStatus = company.subscription.status;
-    
+
     // Apenas ACTIVE permite execução
     if (subStatus === "ACTIVE") {
       // VALIDAÇÃO DE SEGURANÇA: Verificar com Stripe em tempo real
       // Isso previne manipulação do banco de dados
       try {
         const { validateSubscriptionAccess, shouldValidateWithStripe } = await import("./subscription-security");
-        
+
         // Validar com Stripe (pode ser configurado para validar apenas X% das vezes)
         if (shouldValidateWithStripe()) {
           const validation = await validateSubscriptionAccess(companyId);
-          
+
           if (!validation.allowed) {
             return {
               allowed: false,
@@ -114,7 +114,7 @@ export async function canExecuteAgents(companyId: string): Promise<{ allowed: bo
             };
           }
         }
-        
+
         return { allowed: true };
       } catch (error) {
         // Se houver erro na validação, permitir por padrão mas logar
@@ -122,7 +122,7 @@ export async function canExecuteAgents(companyId: string): Promise<{ allowed: bo
         return { allowed: true };
       }
     }
-    
+
     // Bloquear para todos os outros status
     if (subStatus === "OVERDUE") {
       return {
@@ -130,14 +130,14 @@ export async function canExecuteAgents(companyId: string): Promise<{ allowed: bo
         reason: "Pagamento em atraso. Atualize seu método de pagamento para continuar usando os agentes.",
       };
     }
-    
+
     if (subStatus === "EXPIRED" || subStatus === "CANCELED") {
       return {
         allowed: false,
         reason: "Assinatura cancelada ou expirada. Renove sua assinatura para continuar usando os agentes.",
       };
     }
-    
+
     // PENDING também bloqueia (aguardando primeiro pagamento)
     return {
       allowed: false,

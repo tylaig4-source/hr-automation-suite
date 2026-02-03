@@ -210,7 +210,7 @@ const modules = [
 function transformPlansForLanding(dbPlans: PlanFromDB[]): LandingPlan[] {
   return dbPlans.map((plan) => {
     const features = Array.isArray(plan.features) ? plan.features : [];
-    
+
     return {
       name: plan.name,
       price: plan.yearlyPrice ? plan.yearlyPrice.toString() : null,
@@ -264,12 +264,12 @@ const testimonials = [
 
 const faqs = [
   {
-    question: "Como funciona o trial grátis de 3 dias?",
-    answer: "Ao criar sua conta, você recebe automaticamente 3 dias grátis para testar a plataforma. Durante o trial, você tem acesso a 1 usuário, 10 requisições e 10 créditos. Não é necessário cartão de crédito para começar.",
+    question: "Como funciona o trial grátis de 7 dias?",
+    answer: "Ao criar sua conta, você recebe automaticamente 7 dias grátis para testar a plataforma. Durante o trial, você tem acesso a 1 usuário, 10 requisições e 10 créditos. Não é necessário cartão de crédito para começar.",
   },
   {
     question: "O que acontece quando o trial expira?",
-    answer: "Após os 3 dias, você precisará escolher um plano para continuar usando a plataforma. Você receberá notificações antes do término do trial e poderá fazer upgrade a qualquer momento.",
+    answer: "Após os 7 dias, você precisará escolher um plano para continuar usando a plataforma. Você receberá notificações antes do término do trial e poderá fazer upgrade a qualquer momento.",
   },
   {
     question: "Como funciona a plataforma?",
@@ -324,9 +324,9 @@ export default function HomePage({ plans: dbPlans = [] }: HomePageProps) {
   const [activeTestimonial, setActiveTestimonial] = useState(0);
   const [billingCycle, setBillingCycle] = useState<"MONTHLY" | "YEARLY">("YEARLY");
   const [enterpriseFormOpen, setEnterpriseFormOpen] = useState(false);
-  
+
   const isLoggedIn = status === "authenticated" && session?.user;
-  
+
   // Transformar planos do banco para formato da landing
   const plans = dbPlans.length > 0 ? transformPlansForLanding(dbPlans) : [
     // Fallback caso não tenha planos no banco
@@ -373,7 +373,7 @@ export default function HomePage({ plans: dbPlans = [] }: HomePageProps) {
       badge: null,
     },
   ];
-  
+
   // Buscar plano Professional para calcular economia na tabela
   const professionalPlan = plans.find(p => p.name === "Professional");
   const monthlyPrice = professionalPlan?.monthlyPrice ? parseFloat(professionalPlan.monthlyPrice) : 597;
@@ -465,8 +465,8 @@ export default function HomePage({ plans: dbPlans = [] }: HomePageProps) {
                 </Link>
               ) : (
                 <>
-                  <Link 
-                    href="/login" 
+                  <Link
+                    href="/login"
                     className="text-sm font-medium text-gray-400 hover:text-white transition-colors duration-300"
                   >
                     Entrar
@@ -477,7 +477,7 @@ export default function HomePage({ plans: dbPlans = [] }: HomePageProps) {
                   >
                     <div className="absolute inset-0 bg-gradient-to-r from-neon-cyan to-neon-magenta transition-transform duration-300 group-hover:scale-105" />
                     <span className="relative flex items-center gap-2">
-                      Teste Grátis 3 Dias
+                      Teste Grátis 7 Dias
                       <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                     </span>
                   </Link>
@@ -529,7 +529,7 @@ export default function HomePage({ plans: dbPlans = [] }: HomePageProps) {
                       href="/register"
                       className="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-neon-cyan to-neon-magenta px-6 py-3 text-sm font-semibold text-black"
                     >
-                      Teste Grátis 3 Dias
+                      Teste Grátis 7 Dias
                     </Link>
                   </>
                 )}
@@ -539,7 +539,7 @@ export default function HomePage({ plans: dbPlans = [] }: HomePageProps) {
         </header>
 
         {/* Hero Section */}
-        <section 
+        <section
           ref={heroReveal.ref}
           className="min-h-screen flex items-center justify-center pt-20"
         >
@@ -551,7 +551,7 @@ export default function HomePage({ plans: dbPlans = [] }: HomePageProps) {
                 <span>34 agentes de IA especializados em RH</span>
                 <Sparkles className="w-4 h-4" />
               </div>
-              
+
               {/* Main Heading */}
               <h1 className="font-display text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight mb-8">
                 <span className="block text-white">Transforme</span>
@@ -560,14 +560,14 @@ export default function HomePage({ plans: dbPlans = [] }: HomePageProps) {
                 </span>
                 <span className="block text-white">em minutos</span>
               </h1>
-              
+
               {/* Subtitle */}
               <p className="text-xl md:text-2xl text-gray-400 mb-12 max-w-3xl mx-auto leading-relaxed">
                 Plataforma SaaS que usa inteligência artificial para automatizar{" "}
                 <span className="text-neon-cyan font-semibold">90% das tarefas operacionais</span>{" "}
                 do seu departamento de RH.
               </p>
-              
+
               {/* CTA Buttons */}
               <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
                 {isLoggedIn ? (
@@ -590,7 +590,7 @@ export default function HomePage({ plans: dbPlans = [] }: HomePageProps) {
                     <div className="absolute inset-0 bg-gradient-to-r from-neon-cyan via-neon-magenta to-neon-purple" />
                     <div className="absolute inset-0 bg-gradient-to-r from-neon-cyan via-neon-magenta to-neon-purple blur-xl opacity-50 group-hover:opacity-75 transition-opacity" />
                     <span className="relative flex items-center gap-2">
-                      Teste Grátis 3 Dias
+                      Teste Grátis 7 Dias
                       <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                     </span>
                   </Link>
@@ -641,7 +641,7 @@ export default function HomePage({ plans: dbPlans = [] }: HomePageProps) {
         </section>
 
         {/* Problem/Solution Section */}
-        <section 
+        <section
           ref={problemReveal.ref}
           className="py-32 relative"
         >
@@ -671,8 +671,8 @@ export default function HomePage({ plans: dbPlans = [] }: HomePageProps) {
                 </div>
                 {/* Rows */}
                 {problems.map((problem, i) => (
-                  <div 
-                    key={i} 
+                  <div
+                    key={i}
                     className={`grid grid-cols-4 gap-0 p-5 items-center hover:bg-white/5 transition-colors border-b border-white/5 last:border-0`}
                     style={{ animationDelay: `${i * 100}ms` }}
                   >
@@ -692,7 +692,7 @@ export default function HomePage({ plans: dbPlans = [] }: HomePageProps) {
         </section>
 
         {/* Modules Section */}
-        <section 
+        <section
           id="modulos"
           ref={modulesReveal.ref}
           className="py-32 relative"
@@ -718,7 +718,7 @@ export default function HomePage({ plans: dbPlans = [] }: HomePageProps) {
                   <div
                     key={module.name}
                     className={`group card-3d glass rounded-2xl p-6 border border-white/10 hover:border-opacity-50 transition-all duration-500 cursor-pointer ${modulesReveal.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}
-                    style={{ 
+                    style={{
                       borderColor: module.color + "30",
                       transitionDelay: `${i * 100}ms`,
                     }}
@@ -729,7 +729,7 @@ export default function HomePage({ plans: dbPlans = [] }: HomePageProps) {
                     >
                       <Icon className="w-7 h-7" style={{ color: module.color }} />
                     </div>
-                    <h3 
+                    <h3
                       className="text-lg font-bold mb-2 transition-colors duration-300"
                       style={{ color: "white" }}
                     >
@@ -739,16 +739,16 @@ export default function HomePage({ plans: dbPlans = [] }: HomePageProps) {
                       {module.description}
                     </p>
                     <div className="flex items-center justify-between">
-                      <span 
+                      <span
                         className="text-xs font-semibold px-3 py-1 rounded-full"
-                        style={{ 
+                        style={{
                           backgroundColor: module.color + "20",
-                          color: module.color 
+                          color: module.color
                         }}
                       >
                         {module.agents} agentes
                       </span>
-                      <ChevronRight 
+                      <ChevronRight
                         className="w-4 h-4 text-gray-500 group-hover:translate-x-1 transition-all"
                         style={{ color: module.color }}
                       />
@@ -761,7 +761,7 @@ export default function HomePage({ plans: dbPlans = [] }: HomePageProps) {
         </section>
 
         {/* How it Works */}
-        <section 
+        <section
           ref={howItWorksReveal.ref}
           className="py-32 relative"
         >
@@ -830,7 +830,7 @@ export default function HomePage({ plans: dbPlans = [] }: HomePageProps) {
         </section>
 
         {/* Benefits */}
-        <section 
+        <section
           ref={benefitsReveal.ref}
           className="py-32"
         >
@@ -897,7 +897,7 @@ export default function HomePage({ plans: dbPlans = [] }: HomePageProps) {
                   <div className="relative glass rounded-3xl p-10 border border-neon-cyan/20 overflow-hidden">
                     {/* Background Glow */}
                     <div className="absolute inset-0 bg-gradient-to-br from-neon-cyan/10 via-neon-magenta/10 to-neon-purple/10" />
-                    
+
                     <div className="relative z-10">
                       <div className="text-7xl md:text-8xl font-display font-bold bg-gradient-to-r from-neon-cyan to-neon-magenta bg-clip-text text-transparent mb-3">
                         85-95%
@@ -931,7 +931,7 @@ export default function HomePage({ plans: dbPlans = [] }: HomePageProps) {
         </section>
 
         {/* Testimonials */}
-        <section 
+        <section
           ref={testimonialsReveal.ref}
           className="py-32 relative"
         >
@@ -975,11 +975,10 @@ export default function HomePage({ plans: dbPlans = [] }: HomePageProps) {
                     <button
                       key={i}
                       onClick={() => setActiveTestimonial(i)}
-                      className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                        i === activeTestimonial 
-                          ? 'bg-neon-cyan w-8' 
-                          : 'bg-gray-600 hover:bg-gray-500'
-                      }`}
+                      className={`w-3 h-3 rounded-full transition-all duration-300 ${i === activeTestimonial
+                        ? 'bg-neon-cyan w-8'
+                        : 'bg-gray-600 hover:bg-gray-500'
+                        }`}
                     />
                   ))}
                 </div>
@@ -989,7 +988,7 @@ export default function HomePage({ plans: dbPlans = [] }: HomePageProps) {
         </section>
 
         {/* Pricing */}
-        <section 
+        <section
           id="precos"
           ref={pricingReveal.ref}
           className="py-32"
@@ -1012,11 +1011,10 @@ export default function HomePage({ plans: dbPlans = [] }: HomePageProps) {
               <div className="inline-flex items-center gap-2 p-1 rounded-xl glass border border-white/10">
                 <button
                   onClick={() => setBillingCycle("YEARLY")}
-                  className={`px-6 py-3 rounded-lg text-sm font-semibold transition-all duration-300 ${
-                    billingCycle === "YEARLY"
-                      ? "bg-gradient-to-r from-neon-cyan to-neon-magenta text-black"
-                      : "text-gray-400 hover:text-white"
-                  }`}
+                  className={`px-6 py-3 rounded-lg text-sm font-semibold transition-all duration-300 ${billingCycle === "YEARLY"
+                    ? "bg-gradient-to-r from-neon-cyan to-neon-magenta text-black"
+                    : "text-gray-400 hover:text-white"
+                    }`}
                 >
                   Anual
                   {billingCycle === "YEARLY" && professionalPlan && professionalPlan.monthlyPrice && professionalPlan.price && (
@@ -1027,11 +1025,10 @@ export default function HomePage({ plans: dbPlans = [] }: HomePageProps) {
                 </button>
                 <button
                   onClick={() => setBillingCycle("MONTHLY")}
-                  className={`px-6 py-3 rounded-lg text-sm font-semibold transition-all duration-300 ${
-                    billingCycle === "MONTHLY"
-                      ? "bg-gradient-to-r from-neon-cyan to-neon-magenta text-black"
-                      : "text-gray-400 hover:text-white"
-                  }`}
+                  className={`px-6 py-3 rounded-lg text-sm font-semibold transition-all duration-300 ${billingCycle === "MONTHLY"
+                    ? "bg-gradient-to-r from-neon-cyan to-neon-magenta text-black"
+                    : "text-gray-400 hover:text-white"
+                    }`}
                 >
                   Mensal
                 </button>
@@ -1062,22 +1059,21 @@ export default function HomePage({ plans: dbPlans = [] }: HomePageProps) {
                       </span>
                     </div>
                   )}
-                  
-                  <div 
-                    className={`relative h-full glass rounded-3xl p-8 border transition-all duration-300 group-hover:scale-[1.02] ${
-                      plan.highlighted 
-                        ? 'border-neon-magenta/50 bg-neon-magenta/5' 
-                        : 'border-white/10 hover:border-white/20'
-                    }`}
+
+                  <div
+                    className={`relative h-full glass rounded-3xl p-8 border transition-all duration-300 group-hover:scale-[1.02] ${plan.highlighted
+                      ? 'border-neon-magenta/50 bg-neon-magenta/5'
+                      : 'border-white/10 hover:border-white/20'
+                      }`}
                   >
                     {plan.highlighted && (
                       <div className="absolute inset-0 rounded-3xl bg-gradient-to-b from-neon-magenta/10 to-transparent" />
                     )}
-                    
+
                     <div className="relative z-10">
                       {/* Icon and Name */}
                       <div className="flex items-center gap-3 mb-4">
-                        <div 
+                        <div
                           className="p-3 rounded-xl"
                           style={{ backgroundColor: plan.color + "20" }}
                         >
@@ -1092,7 +1088,7 @@ export default function HomePage({ plans: dbPlans = [] }: HomePageProps) {
                           <p className="text-sm text-gray-400">{plan.description}</p>
                         </div>
                       </div>
-                      
+
                       {/* Price */}
                       <div className="mb-8">
                         {!plan.price && !plan.monthlyPrice ? (
@@ -1106,11 +1102,11 @@ export default function HomePage({ plans: dbPlans = [] }: HomePageProps) {
                             <div className="flex items-baseline gap-1">
                               <span className="text-sm text-gray-400">R$</span>
                               <span className="text-5xl font-display font-bold" style={{ color: plan.color }}>
-                                {billingCycle === "YEARLY" && plan.price 
+                                {billingCycle === "YEARLY" && plan.price
                                   ? parseFloat(plan.price).toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })
-                                  : plan.monthlyPrice 
-                                  ? parseFloat(plan.monthlyPrice).toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })
-                                  : "0"}
+                                  : plan.monthlyPrice
+                                    ? parseFloat(plan.monthlyPrice).toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+                                    : "0"}
                               </span>
                               <span className="text-gray-400">/mês</span>
                             </div>
@@ -1144,12 +1140,12 @@ export default function HomePage({ plans: dbPlans = [] }: HomePageProps) {
                           </div>
                         )}
                       </div>
-                      
+
                       {/* Features */}
                       <ul className="space-y-3 mb-8">
                         {plan.features.map((feature, fi) => (
                           <li key={fi} className="flex items-center gap-3">
-                            <div 
+                            <div
                               className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
                               style={{ backgroundColor: plan.color + "20" }}
                             >
@@ -1159,16 +1155,15 @@ export default function HomePage({ plans: dbPlans = [] }: HomePageProps) {
                           </li>
                         ))}
                       </ul>
-                      
+
                       {/* CTA */}
                       {plan.name === "Enterprise" ? (
                         <button
                           onClick={() => setEnterpriseFormOpen(true)}
-                          className={`flex items-center justify-center gap-2 w-full rounded-xl py-4 font-semibold transition-all duration-300 ${
-                            plan.highlighted
-                              ? 'bg-gradient-to-r from-neon-cyan to-neon-magenta text-black hover:opacity-90'
-                              : 'border-2 border-gray-700 hover:border-gray-500 text-white hover:bg-white/5'
-                          }`}
+                          className={`flex items-center justify-center gap-2 w-full rounded-xl py-4 font-semibold transition-all duration-300 ${plan.highlighted
+                            ? 'bg-gradient-to-r from-neon-cyan to-neon-magenta text-black hover:opacity-90'
+                            : 'border-2 border-gray-700 hover:border-gray-500 text-white hover:bg-white/5'
+                            }`}
                         >
                           {plan.cta}
                           <ArrowRight className="w-4 h-4" />
@@ -1176,11 +1171,10 @@ export default function HomePage({ plans: dbPlans = [] }: HomePageProps) {
                       ) : (
                         <Link
                           href="/register"
-                          className={`flex items-center justify-center gap-2 w-full rounded-xl py-4 font-semibold transition-all duration-300 ${
-                            plan.highlighted
-                              ? 'bg-gradient-to-r from-neon-cyan to-neon-magenta text-black hover:opacity-90'
-                              : 'border-2 border-gray-700 hover:border-gray-500 text-white hover:bg-white/5'
-                          }`}
+                          className={`flex items-center justify-center gap-2 w-full rounded-xl py-4 font-semibold transition-all duration-300 ${plan.highlighted
+                            ? 'bg-gradient-to-r from-neon-cyan to-neon-magenta text-black hover:opacity-90'
+                            : 'border-2 border-gray-700 hover:border-gray-500 text-white hover:bg-white/5'
+                            }`}
                         >
                           {plan.cta}
                           <ArrowRight className="w-4 h-4" />
@@ -1275,7 +1269,7 @@ export default function HomePage({ plans: dbPlans = [] }: HomePageProps) {
         </section>
 
         {/* FAQ */}
-        <section 
+        <section
           id="faq"
           ref={faqReveal.ref}
           className="py-32"
@@ -1301,16 +1295,14 @@ export default function HomePage({ plans: dbPlans = [] }: HomePageProps) {
                     onClick={() => setOpenFaq(openFaq === i ? null : i)}
                   >
                     <span className="font-semibold text-lg pr-4">{faq.question}</span>
-                    <ChevronDown 
-                      className={`w-5 h-5 text-neon-cyan flex-shrink-0 transition-transform duration-300 ${
-                        openFaq === i ? 'rotate-180' : ''
-                      }`}
+                    <ChevronDown
+                      className={`w-5 h-5 text-neon-cyan flex-shrink-0 transition-transform duration-300 ${openFaq === i ? 'rotate-180' : ''
+                        }`}
                     />
                   </button>
-                  <div 
-                    className={`overflow-hidden transition-all duration-300 ${
-                      openFaq === i ? 'max-h-48' : 'max-h-0'
-                    }`}
+                  <div
+                    className={`overflow-hidden transition-all duration-300 ${openFaq === i ? 'max-h-48' : 'max-h-0'
+                      }`}
                   >
                     <p className="px-6 pb-6 text-gray-400">
                       {faq.answer}
@@ -1323,7 +1315,7 @@ export default function HomePage({ plans: dbPlans = [] }: HomePageProps) {
         </section>
 
         {/* Final CTA */}
-        <section 
+        <section
           ref={ctaReveal.ref}
           className="py-32"
         >
@@ -1333,7 +1325,7 @@ export default function HomePage({ plans: dbPlans = [] }: HomePageProps) {
                 {/* Background */}
                 <div className="absolute inset-0 bg-gradient-to-br from-neon-cyan via-neon-magenta to-neon-purple opacity-90" />
                 <div className="absolute inset-0 bg-grid-pattern opacity-20" />
-                
+
                 {/* Content */}
                 <div className="relative z-10 p-12 md:p-20 text-center">
                   <h2 className="font-display text-4xl md:text-6xl font-bold text-black mb-6">
@@ -1356,14 +1348,14 @@ export default function HomePage({ plans: dbPlans = [] }: HomePageProps) {
                         href="/register"
                         className="group inline-flex items-center justify-center rounded-2xl bg-black px-10 py-5 text-lg font-bold text-white hover:bg-gray-900 transition-all hover:scale-105"
                       >
-                        Teste Grátis 3 Dias
+                        Teste Grátis 7 Dias
                         <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
                       </Link>
                     )}
                   </div>
                   {!isLoggedIn && (
                     <p className="text-sm text-black/50 mt-6">
-                      Sem cartão de crédito • Trial de 3 dias grátis
+                      Sem cartão de crédito • Trial de 7 dias grátis
                     </p>
                   )}
                 </div>
@@ -1412,24 +1404,24 @@ export default function HomePage({ plans: dbPlans = [] }: HomePageProps) {
                 </ul>
               </div>
             </div>
-          <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-sm text-gray-500">
-              © 2024 HR Automation Suite. Todos os direitos reservados.
-            </p>
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-500">
-                Feito com ❤️ por{" "}
-                <a 
-                  href="https://meusuper.app/" 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
-                  className="text-neon-cyan hover:underline"
-                >
-                  Meu Super App
-                </a>
-              </span>
+            <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
+              <p className="text-sm text-gray-500">
+                © 2024 HR Automation Suite. Todos os direitos reservados.
+              </p>
+              <div className="flex items-center gap-4">
+                <span className="text-sm text-gray-500">
+                  Feito com ❤️ por{" "}
+                  <a
+                    href="https://meusuper.app/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-neon-cyan hover:underline"
+                  >
+                    Meu Super App
+                  </a>
+                </span>
+              </div>
             </div>
-          </div>
           </div>
         </footer>
 

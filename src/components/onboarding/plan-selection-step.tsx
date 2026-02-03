@@ -155,11 +155,10 @@ export function PlanSelectionStep({
             Comece Grátis
           </h3>
           <div
-            className={`rounded-2xl border-2 p-6 cursor-pointer transition-all ${
-              selectedPlan?.id === trialPlan.id
+            className={`rounded-2xl border-2 p-6 cursor-pointer transition-all ${selectedPlan?.id === trialPlan.id
                 ? "border-neon-cyan bg-neon-cyan/10"
                 : "border-white/10 bg-white/5 hover:border-white/20"
-            }`}
+              }`}
             onClick={() => handleSelectPlan(trialPlan)}
           >
             <div className="flex items-start justify-between">
@@ -232,21 +231,19 @@ export function PlanSelectionStep({
             <div className="flex items-center gap-2 bg-white/5 rounded-lg p-1">
               <button
                 onClick={() => setBillingCycle("MONTHLY")}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                  billingCycle === "MONTHLY"
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${billingCycle === "MONTHLY"
                     ? "bg-neon-cyan text-black"
                     : "text-gray-400 hover:text-white"
-                }`}
+                  }`}
               >
                 Mensal
               </button>
               <button
                 onClick={() => setBillingCycle("YEARLY")}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                  billingCycle === "YEARLY"
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${billingCycle === "YEARLY"
                     ? "bg-neon-cyan text-black"
                     : "text-gray-400 hover:text-white"
-                }`}
+                  }`}
               >
                 Anual
               </button>
@@ -261,11 +258,10 @@ export function PlanSelectionStep({
               return (
                 <div
                   key={plan.id}
-                  className={`rounded-2xl border-2 p-6 cursor-pointer transition-all ${
-                    selectedPlan?.id === plan.id
+                  className={`rounded-2xl border-2 p-6 cursor-pointer transition-all ${selectedPlan?.id === plan.id
                       ? "border-neon-cyan bg-neon-cyan/10"
                       : "border-white/10 bg-white/5 hover:border-white/20"
-                  }`}
+                    }`}
                   onClick={() => handleSelectPlan(plan)}
                 >
                   <div className="flex items-start justify-between mb-4">
@@ -307,6 +303,19 @@ export function PlanSelectionStep({
                           /ano
                         </p>
                       )}
+                    <div className="mt-2 text-xs font-medium">
+                      {billingCycle === "MONTHLY" ? (
+                        <p className="text-neon-cyan flex items-center gap-1">
+                          <Check className="w-3 h-3" />
+                          7 dias grátis com cartão vinculado
+                        </p>
+                      ) : (
+                        <p className="text-amber-400 flex items-center gap-1">
+                          <Zap className="w-3 h-3" />
+                          Sem período de teste
+                        </p>
+                      )}
+                    </div>
                   </div>
                   <ul className="space-y-2 mb-4">
                     {getFeatures(plan)

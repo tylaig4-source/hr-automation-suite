@@ -43,8 +43,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Calcular datas do trial (padrão: 3 dias)
-    const trialDays = 3;
+    // Calcular datas do trial (padrão: 7 dias)
+    const trialDays = 7;
     const trialStartDate = new Date();
     const trialEndDate = new Date();
     trialEndDate.setDate(trialEndDate.getDate() + trialDays);
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
       data: {
         userId: session.user.id,
         title: "Trial Ativado! 🎉",
-        message: `Seu trial de 3 dias começou! Você tem até ${trialEndDate.toLocaleDateString("pt-BR")} para explorar todas as funcionalidades.`,
+        message: `Seu trial de 7 dias começou! Você tem até ${trialEndDate.toLocaleDateString("pt-BR")} para explorar todas as funcionalidades.`,
         type: "SUCCESS",
       },
     });

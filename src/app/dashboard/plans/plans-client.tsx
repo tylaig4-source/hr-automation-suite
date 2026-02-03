@@ -43,7 +43,7 @@ const plans = [
         monthlyPrice: 0,
         yearlyPrice: 0,
         totalYearly: 0,
-        description: "Teste grátis por 3 dias",
+        description: "Teste grátis por 7 dias",
         features: [
             "1 usuário",
             "10 requisições",
@@ -236,13 +236,12 @@ export function PlansClient({ company }: PlansClientProps) {
                                     <>
                                         <div className="h-3 bg-muted rounded-full overflow-hidden">
                                             <div
-                                                className={`h-full transition-all duration-500 ${
-                                                    (usageData.credits / usageData.maxExecutions) * 100 <= 10
-                                                        ? "bg-red-500"
-                                                        : (usageData.credits / usageData.maxExecutions) * 100 <= 30
+                                                className={`h-full transition-all duration-500 ${(usageData.credits / usageData.maxExecutions) * 100 <= 10
+                                                    ? "bg-red-500"
+                                                    : (usageData.credits / usageData.maxExecutions) * 100 <= 30
                                                         ? "bg-amber-500"
                                                         : "bg-gradient-to-r from-green-500 to-emerald-500"
-                                                }`}
+                                                    }`}
                                                 style={{ width: `${Math.min((usageData.credits / usageData.maxExecutions) * 100, 100)}%` }}
                                             />
                                         </div>
@@ -280,13 +279,12 @@ export function PlansClient({ company }: PlansClientProps) {
                                     <>
                                         <div className="h-3 bg-muted rounded-full overflow-hidden">
                                             <div
-                                                className={`h-full transition-all duration-500 ${
-                                                    usageData.usersPercentage >= 90
-                                                        ? "bg-red-500"
-                                                        : usageData.usersPercentage >= 70
+                                                className={`h-full transition-all duration-500 ${usageData.usersPercentage >= 90
+                                                    ? "bg-red-500"
+                                                    : usageData.usersPercentage >= 70
                                                         ? "bg-amber-500"
                                                         : "bg-gradient-to-r from-indigo-500 to-purple-500"
-                                                }`}
+                                                    }`}
                                                 style={{ width: `${Math.min(usageData.usersPercentage, 100)}%` }}
                                             />
                                         </div>
@@ -343,11 +341,10 @@ export function PlansClient({ company }: PlansClientProps) {
                 <div className="inline-flex items-center gap-2 p-1 rounded-xl bg-muted/50 border">
                     <button
                         onClick={() => setBillingCycle("YEARLY")}
-                        className={`px-6 py-3 rounded-lg text-sm font-semibold transition-all duration-300 ${
-                            billingCycle === "YEARLY"
-                                ? "bg-primary text-primary-foreground"
-                                : "text-muted-foreground hover:text-foreground"
-                        }`}
+                        className={`px-6 py-3 rounded-lg text-sm font-semibold transition-all duration-300 ${billingCycle === "YEARLY"
+                            ? "bg-primary text-primary-foreground"
+                            : "text-muted-foreground hover:text-foreground"
+                            }`}
                     >
                         Anual
                         {billingCycle === "YEARLY" && (
@@ -358,11 +355,10 @@ export function PlansClient({ company }: PlansClientProps) {
                     </button>
                     <button
                         onClick={() => setBillingCycle("MONTHLY")}
-                        className={`px-6 py-3 rounded-lg text-sm font-semibold transition-all duration-300 ${
-                            billingCycle === "MONTHLY"
-                                ? "bg-primary text-primary-foreground"
-                                : "text-muted-foreground hover:text-foreground"
-                        }`}
+                        className={`px-6 py-3 rounded-lg text-sm font-semibold transition-all duration-300 ${billingCycle === "MONTHLY"
+                            ? "bg-primary text-primary-foreground"
+                            : "text-muted-foreground hover:text-foreground"
+                            }`}
                     >
                         Mensal
                     </button>
@@ -388,13 +384,11 @@ export function PlansClient({ company }: PlansClientProps) {
                     return (
                         <Card
                             key={plan.id}
-                            className={`relative transition-all hover:shadow-lg ${
-                                plan.popular 
-                                    ? "border-primary shadow-md shadow-primary/10" 
-                                    : ""
-                            } ${isCurrent ? "ring-2 ring-green-500" : ""} ${
-                                plan.id === "TRIAL" ? "opacity-75" : ""
-                            }`}
+                            className={`relative transition-all hover:shadow-lg ${plan.popular
+                                ? "border-primary shadow-md shadow-primary/10"
+                                : ""
+                                } ${isCurrent ? "ring-2 ring-green-500" : ""} ${plan.id === "TRIAL" ? "opacity-75" : ""
+                                }`}
                         >
                             {plan.popular && (
                                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-sm font-bold bg-primary text-primary-foreground">
@@ -410,7 +404,7 @@ export function PlansClient({ company }: PlansClientProps) {
                             <CardHeader>
                                 {/* Header */}
                                 <div className="flex items-center gap-3 mb-4">
-                                    <div 
+                                    <div
                                         className="p-3 rounded-xl"
                                         style={{ backgroundColor: plan.color + "20" }}
                                     >
@@ -432,7 +426,7 @@ export function PlansClient({ company }: PlansClientProps) {
                                     ) : plan.id === "TRIAL" ? (
                                         <div>
                                             <div className="text-3xl font-bold text-primary">Grátis</div>
-                                            <p className="text-sm text-muted-foreground mt-1">3 dias para testar</p>
+                                            <p className="text-sm text-muted-foreground mt-1">7 dias para testar</p>
                                         </div>
                                     ) : (
                                         <div>
@@ -474,21 +468,20 @@ export function PlansClient({ company }: PlansClientProps) {
                                 {plan.id === "TRIAL" ? (
                                     <div className="pt-4">
                                         <p className="text-xs text-center text-muted-foreground">
-                                            {isCurrent 
-                                                ? "Seu trial está ativo" 
+                                            {isCurrent
+                                                ? "Seu trial está ativo"
                                                 : "Trial disponível apenas para novos usuários"
                                             }
                                         </p>
                                     </div>
                                 ) : (
                                     <Button
-                                        className={`w-full ${
-                                            isCurrent
-                                                ? ""
-                                                : plan.popular
-                                                    ? "bg-primary hover:bg-primary/90"
-                                                    : ""
-                                        }`}
+                                        className={`w-full ${isCurrent
+                                            ? ""
+                                            : plan.popular
+                                                ? "bg-primary hover:bg-primary/90"
+                                                : ""
+                                            }`}
                                         variant={isCurrent ? "outline" : (plan.popular ? "default" : "secondary")}
                                         disabled={isCurrent}
                                         onClick={() => handleSelectPlan(plan)}

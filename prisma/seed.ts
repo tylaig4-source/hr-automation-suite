@@ -10,7 +10,7 @@ async function main() {
     {
       planId: "TRIAL",
       name: "Trial",
-      description: "Teste grátis por 3 dias",
+      description: "Teste grátis por 7 dias",
       monthlyPrice: 0,
       yearlyPrice: 0,
       yearlyTotal: 0,

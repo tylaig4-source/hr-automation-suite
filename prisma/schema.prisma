@@ -111,7 +111,7 @@ model Company {
   maxExecutions Int @default(10) // Por mês
   credits       Int @default(10) // Créditos para uso de agentes
 
-  // Trial de 3 dias
+  // Trial de 7 dias
   trialStartDate DateTime? // Data de início do trial
   trialEndDate   DateTime? // Data de término do trial
   isTrialing     Boolean   @default(true) // Se está em período de trial
@@ -128,7 +128,7 @@ model Company {
 }
 
 enum CompanyPlan {
-  TRIAL // Grátis - 3 dias, 1 usuário, 10 execuções
+  TRIAL // Grátis - 7 dias, 1 usuário, 10 execuções
   STARTER // Legado - convertido para TRIAL em novas contas
   PROFESSIONAL // R$ 497/mês - 5 usuários, 500 execuções
   ENTERPRISE // Custom - Ilimitado
