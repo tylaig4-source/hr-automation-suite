@@ -73,34 +73,14 @@ export function PlanSelectionStep({
         }),
       });
 
-      if (selectedPlan.isTrial) {
-        // Ativar trial
-        const response = await fetch("/api/company/activate-trial", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ planId: selectedPlan.planId }),
-        });
+      // Redirecionar para checkout (agora o trial também exige cartão e checkout no Stripe)
+      // Passamos o billingCycle como 'MONTHLY' por padrão para trial se não estiver definido
+      const billing = billingCycle || "MONTHLY";
 
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.error || "Erro ao ativar trial");
-        }
-
-        toast({
-          title: "Trial ativado!",
-          description: "Seu trial foi ativado com sucesso. Bem-vindo!",
-        });
-
-        onComplete();
-        router.push("/dashboard");
-        router.refresh();
-      } else {
-        // Redirecionar para checkout
-        onComplete();
-        window.location.href = getAbsoluteUrl(
-          `/dashboard/plans?plan=${selectedPlan.planId}&billing=${billingCycle}`
-        );
-      }
+      onComplete();
+      window.location.href = getAbsoluteUrl(
+        `/dashboard/plans?plan=${selectedPlan.planId}&billing=${billing}&trial=true`
+      );
     } catch (error: any) {
       toast({
         title: "Erro",
@@ -156,8 +136,8 @@ export function PlanSelectionStep({
           </h3>
           <div
             className={`rounded-2xl border-2 p-6 cursor-pointer transition-all ${selectedPlan?.id === trialPlan.id
-                ? "border-neon-cyan bg-neon-cyan/10"
-                : "border-white/10 bg-white/5 hover:border-white/20"
+              ? "border-neon-cyan bg-neon-cyan/10"
+              : "border-white/10 bg-white/5 hover:border-white/20"
               }`}
             onClick={() => handleSelectPlan(trialPlan)}
           >
@@ -232,8 +212,8 @@ export function PlanSelectionStep({
               <button
                 onClick={() => setBillingCycle("MONTHLY")}
                 className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${billingCycle === "MONTHLY"
-                    ? "bg-neon-cyan text-black"
-                    : "text-gray-400 hover:text-white"
+                  ? "bg-neon-cyan text-black"
+                  : "text-gray-400 hover:text-white"
                   }`}
               >
                 Mensal
@@ -241,8 +221,8 @@ export function PlanSelectionStep({
               <button
                 onClick={() => setBillingCycle("YEARLY")}
                 className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${billingCycle === "YEARLY"
-                    ? "bg-neon-cyan text-black"
-                    : "text-gray-400 hover:text-white"
+                  ? "bg-neon-cyan text-black"
+                  : "text-gray-400 hover:text-white"
                   }`}
               >
                 Anual
@@ -259,8 +239,8 @@ export function PlanSelectionStep({
                 <div
                   key={plan.id}
                   className={`rounded-2xl border-2 p-6 cursor-pointer transition-all ${selectedPlan?.id === plan.id
-                      ? "border-neon-cyan bg-neon-cyan/10"
-                      : "border-white/10 bg-white/5 hover:border-white/20"
+                    ? "border-neon-cyan bg-neon-cyan/10"
+                    : "border-white/10 bg-white/5 hover:border-white/20"
                     }`}
                   onClick={() => handleSelectPlan(plan)}
                 >
