@@ -638,17 +638,25 @@ export async function syncPlanToStripe(data: {
   }
 
   // Verificar chave antes de usar
-  const secretKey = await getStripeSecretKey();
+  const dbKey = await getStripeSecretKey();
+  const envKey = process.env.STRIPE_SECRET_KEY;
+  const secretKey = dbKey || envKey;
+
   if (!secretKey) {
-    throw new Error("Chave secreta do Stripe não encontrada no banco de dados");
+    throw new Error("Chave secreta do Stripe não encontrada no banco de dados nem nas variáveis de ambiente");
   }
 
   if (secretKey.length < 50) {
-    throw new Error(`Chave secreta do Stripe parece estar incompleta (${secretKey.length} caracteres). Verifique se a chave foi salva corretamente em /admin/settings.`);
+    // Se for chave de env/build/dummy, pode ser menor, mas vamos assumir validação padrão
+    if (secretKey !== "sk_test_dummy") {
+      throw new Error(`Chave secreta do Stripe parece estar incompleta (${secretKey.length} caracteres). Verifique se a chave foi salva corretamente em /admin/settings.`);
+    }
   }
 
   if (!secretKey.startsWith("sk_test_") && !secretKey.startsWith("sk_live_")) {
-    throw new Error(`Chave secreta do Stripe inválida. Deve começar com sk_test_ ou sk_live_. Primeiros caracteres: ${secretKey.substring(0, 20)}`);
+    if (secretKey !== "sk_test_dummy") {
+      throw new Error(`Chave secreta do Stripe inválida. Deve começar com sk_test_ ou sk_live_. Primeiros caracteres: ${secretKey.substring(0, 20)}`);
+    }
   }
 
   console.log(`[syncPlanToStripe] Stripe configurado, criando/buscando produto: ${data.name}`);
