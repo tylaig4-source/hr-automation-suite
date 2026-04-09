@@ -8,6 +8,7 @@ WORKDIR /app
 
 # Install dependencies based on the preferred package manager
 COPY package.json package-lock.json* ./
+COPY prisma ./prisma/
 RUN npm ci --legacy-peer-deps
 
 # Stage 3: Builder
@@ -33,6 +34,8 @@ ENV NEXT_TELEMETRY_DISABLED 1
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
+# Ensure public directory exists
+RUN mkdir -p public
 COPY --from=builder /app/public ./public
 
 # Set the correct permission for prerender cache
