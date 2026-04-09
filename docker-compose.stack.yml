@@ -1,0 +1,104 @@
+version: "3.7"
+
+services:
+## --------------------------- HR AUTOMATION SUITE --------------------------- ##
+  hr-app:
+    image: hr-automation-suite:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    
+    networks:
+      - MeuSuperAppNet
+
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://hr_user:hr_secret_2024@hr-postgres:5432/hr_automation?schema=public
+      - REDIS_URL=redis://hr-redis:6379
+      - REDIS_PASSWORD=redis_secret_2024
+      - NEXTAUTH_URL=https://app.meusuper.app
+      # NEXTAUTH_SECRET and AI Keys should be set in Portainer/Secret ENV
+      - NEXTAUTH_SECRET=changeme_in_portainer
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1024M
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.hr_app.rule=Host(`app.meusuper.app`)
+        - traefik.http.routers.hr_app.entrypoints=websecure
+        - traefik.http.routers.hr_app.priority=10
+        - traefik.http.routers.hr_app.tls.certresolver=letsencryptresolver
+        - traefik.http.routers.hr_app.service=hr_app
+        - traefik.http.services.hr_app.loadbalancer.server.port=3000
+        - traefik.http.services.hr_app.loadbalancer.passHostHeader=1
+
+    depends_on:
+      - hr-postgres
+      - hr-redis
+
+## --------------------------- INFRASTRUCTURE --------------------------- ##
+  hr-postgres:
+    image: postgres:16-alpine
+    networks:
+      - MeuSuperAppNet
+    environment:
+      POSTGRES_USER: hr_user
+      POSTGRES_PASSWORD: hr_secret_2024
+      POSTGRES_DB: hr_automation
+    volumes:
+      - hr_postgres_data:/var/lib/postgresql/data
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hr_user -d hr_automation"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  hr-redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "redis_secret_2024"]
+    networks:
+      - MeuSuperAppNet
+    volumes:
+      - hr_redis_data:/data
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: "0.3"
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "redis_secret_2024", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  hr_postgres_data:
+    external: false
+  hr_redis_data:
+    external: false
+
+networks:
+  MeuSuperAppNet:
+    external: true
+    name: MeuSuperAppNet
