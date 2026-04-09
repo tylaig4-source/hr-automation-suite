@@ -1,13 +1,13 @@
 version: "3.7"
 
 services:
-## --------------------------- HR AUTOMATION SUITE --------------------------- ##
+  ## --------------------------- HR AUTOMATION SUITE --------------------------- ##
   hr-app:
     image: hr-automation-suite:latest
     build:
       context: .
       dockerfile: Dockerfile
-    
+
     networks:
       - MeuSuperAppNet
 
@@ -34,7 +34,7 @@ services:
           memory: 1024M
       labels:
         - traefik.enable=true
-        - traefik.http.routers.hr_app.rule=Host(`app.meusuper.app`)
+        - traefik.http.routers.hr_app.rule=Host(`dpinteligente.com.br`)
         - traefik.http.routers.hr_app.entrypoints=websecure
         - traefik.http.routers.hr_app.priority=10
         - traefik.http.routers.hr_app.tls.certresolver=letsencryptresolver
@@ -46,7 +46,7 @@ services:
       - hr-postgres
       - hr-redis
 
-## --------------------------- INFRASTRUCTURE --------------------------- ##
+  ## --------------------------- INFRASTRUCTURE --------------------------- ##
   hr-postgres:
     image: postgres:16-alpine
     networks:
@@ -66,14 +66,14 @@ services:
           cpus: "0.5"
           memory: 512M
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U hr_user -d hr_automation"]
+      test: [ "CMD-SHELL", "pg_isready -U hr_user -d hr_automation" ]
       interval: 10s
       timeout: 5s
       retries: 5
 
   hr-redis:
     image: redis:7-alpine
-    command: ["redis-server", "--appendonly", "yes", "--requirepass", "redis_secret_2024"]
+    command: [ "redis-server", "--appendonly", "yes", "--requirepass", "redis_secret_2024" ]
     networks:
       - MeuSuperAppNet
     volumes:
@@ -87,7 +87,7 @@ services:
           cpus: "0.3"
           memory: 256M
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "redis_secret_2024", "ping"]
+      test: [ "CMD", "redis-cli", "-a", "redis_secret_2024", "ping" ]
       interval: 10s
       timeout: 5s
       retries: 5
