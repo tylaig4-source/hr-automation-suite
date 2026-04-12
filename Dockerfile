@@ -68,5 +68,5 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# Run migrations with globally installed prisma CLI then start server
+# Run database migrations safely
 CMD ["sh", "-c", "prisma migrate deploy && node server.js"]
