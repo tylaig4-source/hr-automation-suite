@@ -43,10 +43,6 @@ next-env.d.ts
 *.swp
 *.swo
 
-# Prisma
-prisma/migrations/*
-!prisma/migrations/.gitkeep
-
 # Logs
 logs/
 *.log
