@@ -34,6 +34,9 @@ WORKDIR /app
 # Install OpenSSL so Prisma schema engine can run migrations
 RUN apk add --no-cache openssl
 
+# Install Prisma CLI globally (exact version matching package.json)
+RUN npm install -g prisma@5.10.0
+
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
@@ -52,10 +55,10 @@ RUN chown nextjs:nodejs .next
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Prisma schema + local binaries (avoids any npx download at runtime)
+# Prisma schema (migrations)
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
+# Prisma generated client (used by the running app)
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/prisma ./node_modules/prisma
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
 
 USER nextjs
@@ -65,5 +68,5 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# Run migrations with local binary then start server
-CMD ["sh", "-c", "node_modules/.bin/prisma migrate deploy && node server.js"]
+# Run migrations with globally installed prisma CLI then start server
+CMD ["sh", "-c", "prisma migrate deploy && node server.js"]
