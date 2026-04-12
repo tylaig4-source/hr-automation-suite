@@ -16,7 +16,7 @@ services:
       - DATABASE_URL=postgresql://hr_user:hr_secret_2024@hr-postgres:5432/hr_automation?schema=public
       - REDIS_URL=redis://hr-redis:6379
       - REDIS_PASSWORD=redis_secret_2024
-      - NEXTAUTH_URL=https://app.meusuper.app
+      - NEXTAUTH_URL=https://dpinteligente.com.br
       # NEXTAUTH_SECRET and AI Keys should be set in Portainer/Secret ENV
       - NEXTAUTH_SECRET=changeme_in_portainer
       - OPENAI_API_KEY=${OPENAI_API_KEY}
