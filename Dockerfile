@@ -3,7 +3,7 @@ FROM node:20-alpine AS base
 
 # Stage 2: Dependencies
 FROM base AS deps
-RUN apk add --no-cache libc6-compat
+RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 
 # Install dependencies based on the preferred package manager
@@ -31,6 +31,9 @@ RUN npm run build
 FROM base AS runner
 WORKDIR /app
 
+# Install OpenSSL so Prisma schema engine can run migrations
+RUN apk add --no-cache openssl
+
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
@@ -45,20 +48,22 @@ COPY --from=builder /app/public ./public
 RUN mkdir .next
 RUN chown nextjs:nodejs .next
 
-# Automatically leverage output traces to reduce image size
-# https://nextjs.org/docs/advanced-features/output-file-tracing
-# Copy the rest of the application
+# Standalone app + static assets
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+# Prisma schema + local binaries (avoids any npx download at runtime)
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/prisma ./node_modules/prisma
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
 
 USER nextjs
 
 EXPOSE 3000
 
 ENV PORT=3000
-# set hostname to localhost
 ENV HOSTNAME="0.0.0.0"
 
-# Execute migrations and start the server
-CMD ["sh", "-c", "npx --yes prisma@5.10.0 migrate deploy && node server.js"]
+# Run migrations with local binary then start server
+CMD ["sh", "-c", "node_modules/.bin/prisma migrate deploy && node server.js"]
